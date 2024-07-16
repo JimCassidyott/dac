@@ -1,0 +1,46 @@
+import * as fs from 'fs';
+import * as path from 'path';
+
+interface FileSystemEntry {
+    name: string;
+    type: 'file' | 'folder';
+    path: string;
+    children?: FileSystemEntry[];
+}
+
+function readFileSystem(rootPath: string, depth: number = 0): FileSystemEntry[] {
+    if (depth > 3) return []; // Limit recursion depth to two levels
+    let entries: FileSystemEntry[] = [];
+
+    try {
+        const filesAndFolders = fs.readdirSync(rootPath);
+
+        for (const name of filesAndFolders) {
+            const fullPath = path.join(rootPath, name);
+            const isDirectory = fs.statSync(fullPath).isDirectory();
+
+            const entry: FileSystemEntry = {
+                name,
+                type: isDirectory ? 'folder' : 'file',
+                path: fullPath,
+            };
+
+            if (isDirectory) {
+                // Recursively read subdirectories, if within depth limit
+                entry.children = readFileSystem(fullPath, depth + 1);
+            }
+
+            entries.push(entry);
+        }
+    } catch (error) {
+        console.error(`Error reading ${rootPath}: ${error}`);
+    }
+
+    return entries;
+}
+
+// Example usage
+const rootDirectory = '/Users/jimca/Documents/code'; // Specify the root directory here
+
+let filestructure = JSON.stringify(readFileSystem(rootDirectory));
+console.log(filestructure);
