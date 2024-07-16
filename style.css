@@ -1,0 +1,78 @@
+html,
+body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.banner,
+footer {
+    background-color: #f0f0f0;
+    text-align: center;
+    padding: 20px;
+    border-bottom: 2px solid #ddd;
+}
+
+
+.container {
+    display: flex;
+    flex-grow: 1;
+    border: 2px solid #ddd;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    /* Add a border around the container */
+    /* Make container fill available space */
+    /* Remove height calculation if using flex-grow */
+}
+
+.panel {
+    flex-grow: 1;
+    border: 2px solid #ddd;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+
+}
+
+.left-panel {
+    width: 25%;
+    flex-grow: 1;
+}
+
+.right-panel {
+    width: 75%;
+    flex-grow: 1;
+}
+
+.banner,
+footer {
+    flex-shrink: 0;
+    width: 100%;
+    /* Prevent banner and footer from shrinking */
+}
+
+.tree ul {
+    list-style-type: none;
+    padding-left: 20px;
+}
+
+.tree li {
+    margin: 0.5em 0;
+    line-height: 1.5em;
+}
+
+.tree .folder>.fa-folder,
+.tree .folder>.fa-folder-open {
+    cursor: pointer;
+}
+
+.tree .nested {
+    display: none;
+}
+
+.tree .active {
+    display: block;
+}

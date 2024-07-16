@@ -4,13 +4,28 @@
 <head>
   <meta charset="UTF-8" />
   <title>DAC</title>
+  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" rel="stylesheet">
   <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'" />
   <meta http-equiv="X-Content-Security-Policy" content="default-src 'self'; script-src 'self'" />
+  <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
-  <h1>Hello, World!</h1>
+  <div class="banner">Banner</div>
+  <div class="container">
+    <div class="panel left-panel">
+      <div id="file-explorer" class="tree">
+        <div id="file-explorer" class="tree"> </div>
+      </div>
+    </div>
+    <div class="panel right-panel">Right Panel (3/4)</div>
+  </div>
+  <footer>
+    Footer Content
+  </footer>
 
   <!-- You can also require other files to run in this process -->
   <script src="./dist/renderer.js"></script>
