@@ -19,7 +19,8 @@ const fileSystemEntries = [
                   {
                       name: "File 1.txt",
                       type: "file",
-                      path: "/folder1/subfolder1/file1.txt"
+                      path: "/folder1/subfolder1/file1.txt",
+                      isAccessible: true
                   }
               ]
           }
@@ -28,7 +29,8 @@ const fileSystemEntries = [
   {
       name: "File 2.txt",
       type: "file",
-      path: "/file2.txt"
+      path: "/file2.txt",
+      isAccessible: false
   }
 ];
 
@@ -41,7 +43,12 @@ function generateTreeHtml(entries: any) {
           html += generateTreeHtml(entry.children);
           html += `</ul></li>`;
       } else {
-          html += `<li><i class="fas fa-file text-primary"></i> ${entry.name}</li>`;
+          if (entry.isAccessible == true) {
+            html += `<li> <i class="fas fa-check-circle text-success fa-xs"></i> <i class="fas fa-file text-primary"></i> ${entry.name}</li>`;
+          }
+          else {
+            html += `<li> <i class="fas fa-times-circle text-danger fa-xs"></i> <i class="fas fa-file text-primary"></i> ${entry.name}</li>`;
+          }
       }
   }
   html += '</ul>';
