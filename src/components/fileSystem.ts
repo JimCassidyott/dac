@@ -21,8 +21,8 @@ interface IFolder {
 
 interface IFolderContents {
     name: string;
-    folders: IFolder[];
-    files: IFile[];
+    folders?: IFolder[];
+    files?: IFile[];
 }
 
 // IFileSystem.ts
@@ -121,9 +121,6 @@ class SystemAdapter implements IFileSystem {
      */
     public async getFolders(directoryPath: string): Promise<IFolder[]> {
         // Implementation specific to System file system
-
-        // Implementation specific toSystem file system
-        // ...
         try {
             // Check if the directory exists and is readable/writable
             await fs.access(directoryPath, fs.constants.R_OK | fs.constants.W_OK);
@@ -158,15 +155,18 @@ class SystemAdapter implements IFileSystem {
                 throw new Error(`Error accessing directory: ${err.message}`);
             }
         }
-
-
         // Return the list of folders
         return [];
     }
 
-    public async getFolderContents(directoryPath: string): Promise<IFolderContents[]> {
+    public async getFolderContents(directoryPath: string,): Promise<IFolderContents[]> {
         // Implementation specific toSystem file system
         // ...
+        const folderContents: IFolderContents = {
+            name: directoryPath,
+            files: await this.getFiles(directoryPath),
+            folders: await this.getFolders(directoryPath)
+        };
 
         // Return the list of folder contents
         return [];
