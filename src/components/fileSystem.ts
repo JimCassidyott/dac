@@ -8,7 +8,7 @@ import * as mime from 'mime-types'; // Ensure correct import
 export interface IFile {
     name: string;
     size: string; // Size in bytes or megabytes
-    mimeType?: string; // MIME type of the file, optional
+    mimeType: string; // MIME type of the file, optional
     isAccessible: boolean; // Accessibility property
     customProperties: { [key: string]: any }; // Custom properties
 }
@@ -66,26 +66,76 @@ class GCDocsAdapter implements IFileSystem {
  * An implementation of the IFileSystem interface for interacting with the System file system.
  */
 class SystemAdapter implements IFileSystem {
+    /**
+     * Retrieves a list of files within the specified directory.
+     * 
+     * @param directoryPath - The path to the directory to retrieve files from.
+     * @returns A promise that resolves to an array of IFile objects representing the files.
+     * @throws {Error} If the directory does not exist or access is denied.
+     */
     public async getFiles(directoryPath: string): Promise<IFile[]> {
-        // Implementation specific toSystem file system
-        // ...
+        // Check if the directory exists and is readable
+        try {
+            await fs.access(directoryPath, fs.constants.R_OK);
 
-        // Return the list of files
-        return [];
+            // Read the directory contents
+            const files = await fs.readdir(directoryPath, { withFileTypes: true });
+
+            // Filter out the .docx files and folders
+            // Filter out the .docx files
+            // Filter out the folders
+            const fileList: IFile[] = files
+                .filter((file) => file.isFile()) // Filter out non-files
+                .map((file) => { // Create IFile objects with name, path, and fileCount initialized to 0
+                    return {
+                        name: file.name, // Name of the file
+                        size: "0", // Size in bytes or megabytes
+                        mimeType: "mimetype", // MIME type of the file, optional
+                        isAccessible: true, // Accessibility property
+                        customProperties: {} // Custom properties
+                    };
+                });
+
+            // Return the list of files
+            return fileList;
+        } catch (err: any) {
+            if (err.code === 'ENOENT') {
+                // If the directory does not exist, throw an error
+                throw new Error(`Directory does not exist: ${directoryPath}`);
+            } else if (err.code === 'EACCES') {
+                // If access is denied, throw an error
+                throw new Error(`Permission denied: ${directoryPath}`);
+            } else {
+                // If any other error occurs, throw a generic error
+                throw new Error(`Error accessing directory: ${err.message}`);
+            }
+        }
+
     }
 
+    /**
+     * Retrieves a list of folders within the specified directory.
+     * @param directoryPath - The path to the directory to retrieve folders from.
+     * @returns A promise that resolves to an array of IFolder objects representing the folders.
+     * @throws {Error} If the directory does not exist or access is denied.
+     */
     public async getFolders(directoryPath: string): Promise<IFolder[]> {
+        // Implementation specific to System file system
+
         // Implementation specific toSystem file system
         // ...
         try {
+            // Check if the directory exists and is readable/writable
             await fs.access(directoryPath, fs.constants.R_OK | fs.constants.W_OK);
+
             // Read the directory contents
             const files = await fs.readdir(directoryPath, { withFileTypes: true });
 
             // Filter out the folders
             const folders: IFolder[] = files
-                .filter((file) => file.isDirectory())
+                .filter((file) => file.isDirectory()) // Filter out non-directories
                 .map((folder) => ({
+                    // Create IFolder objects with name, path, and fileCount initialized to 0
                     name: folder.name,
                     path: path.join(directoryPath, folder.name),
                     fileCount: 0
@@ -98,10 +148,13 @@ class SystemAdapter implements IFileSystem {
 
         } catch (err: any) {
             if (err.code === 'ENOENT') {
+                // If the directory does not exist, throw an error
                 throw new Error(`Directory does not exist: ${directoryPath}`);
             } else if (err.code === 'EACCES') {
+                // If access is denied, throw an error
                 throw new Error(`Permission denied: ${directoryPath}`);
             } else {
+                // If any other error occurs, throw a generic error
                 throw new Error(`Error accessing directory: ${err.message}`);
             }
         }
