@@ -7,51 +7,52 @@
 
 const fileSystemEntries = [
   {
-      name: "Folder 1",
-      type: "folder",
-      path: "/folder1",
-      children: [
+    name: "Folder 1",
+    type: "folder",
+    path: "/folder1",
+    children: [
+      {
+        name: "Subfolder 1",
+        type: "folder",
+        path: "/folder1/subfolder1",
+        children: [
           {
-              name: "Subfolder 1",
-              type: "folder",
-              path: "/folder1/subfolder1",
-              children: [
-                  {
-                      name: "File 1.txt",
-                      type: "file",
-                      path: "/folder1/subfolder1/file1.txt",
-                      isAccessible: true
-                  }
-              ]
+            name: "File 1.txt",
+            type: "file",
+            path: "/folder1/subfolder1/file1.txt",
+            isAccessible: true
           }
-      ]
+        ]
+      }
+    ]
   },
   {
-      name: "File 2.txt",
-      type: "file",
-      path: "/file2.txt",
-      isAccessible: false
+    name: "File 2.txt",
+    type: "file",
+    path: "/file2.txt",
+    isAccessible: false
   }
 ];
 
 function generateTreeHtml(entries: any) {
   let html = '<ul>';
   for (const entry of entries) {
-      if (entry.type === 'folder') {
-          html += `<li><i class="fas fa-folder text-warning folder" onclick="toggleFolder(this)"></i> ${entry.name}`;
-          html += `<ul class="nested">`;
-          html += generateTreeHtml(entry.children);
-          html += `</ul></li>`;
-      } else {
-          if (entry.isAccessible == true) {
-            html += `<li> <i class="fas fa-check-circle text-success fa-xs"></i> <i class="fas fa-file text-primary"></i> ${entry.name}</li>`;
-          }
-          else {
-            html += `<li> <i class="fas fa-times-circle text-danger fa-xs"></i> <i class="fas fa-file text-primary"></i> ${entry.name}</li>`;
-          }
+    if (entry.type === 'folder') {
+      html += `<li><i class="fas fa-folder text-warning folder" onclick="toggleFolder(this)"></i> ${entry.name}`;
+      html += `<ul class="nested">`;
+      html += generateTreeHtml(entry.children);
+      html += `</ul></li>`;
+    } else {
+      if (entry.isAccessible == true) {
+        html += `<li> <i class="fas fa-check-circle text-success fa-xs"></i> <i class="fas fa-file text-primary"></i> ${entry.name}</li>`;
       }
+      else {
+        html += `<li> <i class="fas fa-times-circle text-danger fa-xs"></i> <i class="fas fa-file text-primary"></i> ${entry.name}</li>`;
+      }
+    }
   }
   html += '</ul>';
+
   return html;
 }
 
@@ -60,7 +61,7 @@ function toggleFolder(icon: any) {
   icon.classList.toggle("fa-folder-open");
   let nestedList = icon.nextElementSibling;
   if (nestedList) {
-      nestedList.classList.toggle("active");
+    nestedList.classList.toggle("active");
   }
 }
 
