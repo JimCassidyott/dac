@@ -1,7 +1,7 @@
-import * as fs from 'fs';
+// isAccessible.js      
+
 import * as path from 'path';
-// import AdmZip from 'adm-zip';
-const AdmZip = require('adm-zip');
+const AdmZip = require('adm-zip'); // Using require here is important. If you use import, it will throw an error.
 import * as xml2js from 'xml2js';
 
 // Get the file path from command line arguments
