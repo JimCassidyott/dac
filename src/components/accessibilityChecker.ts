@@ -10,10 +10,12 @@ import * as xml2js from 'xml2js';
  * or undefined if no custom properties are found.
  * @throws {Error} If there is an error reading or parsing the custom properties XML.
  */
-async function readCustomPropertiesXml(filePath: string): Promise<any | undefined> {
+export async function readCustomPropertiesXml(filePath: string): Promise<any | undefined> {
     const fileExtension: string = path.extname(filePath).toLowerCase();
     if (fileExtension !== '.docx') {
-        throw new Error('The provided file is not a Word document (.docx)');
+        console.log('The provided file is not a Word document (.docx)');
+        return false
+
     }
 
     try {
@@ -26,7 +28,7 @@ async function readCustomPropertiesXml(filePath: string): Promise<any | undefine
         // If no custom.xml file is found, return undefined
         if (!customXml) {
             console.log('No custom properties found in this document.');
-            return;
+            return false;
         }
 
         // Extract the XML content
@@ -42,7 +44,7 @@ async function readCustomPropertiesXml(filePath: string): Promise<any | undefine
     } catch (error) {
         // If there is an error, throw an error with the message
         console.error('Error:', error.message);
-        throw error;
+        return false
     }
 }
 /**
@@ -78,7 +80,7 @@ export async function isAccessible(filePath: string): Promise<boolean> {
  * @param {string} filePath The path to the file to be checked.
  * @return {Promise<boolean>} A Promise that resolves to a boolean indicating whether the file is a Word document.
  */
-async function isWordDOC(filePath: string): Promise<boolean> {
+export async function isWordDOC(filePath: string): Promise<boolean> {
     const fileExtension: string = path.extname(filePath).toLowerCase();
     if (fileExtension !== '.docx') {
         throw new Error('The provided file is not a Word document (.docx)');
