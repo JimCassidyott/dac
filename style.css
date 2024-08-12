@@ -16,7 +16,7 @@ footer {
 }
 
 
-.container {
+.jim-container {
     display: flex;
     flex-grow: 1;
     border: 2px solid #ddd;
@@ -75,4 +75,12 @@ footer {
 
 .tree .active {
     display: block;
+}
+
+.wet-banner {
+  background-color: #29527d !important;
+}
+
+.wet-footer {
+  background-color: #999;
 }
