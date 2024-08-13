@@ -32,6 +32,7 @@
     "@electron-forge/plugin-auto-unpack-natives": "^7.4.0",
     "@electron-forge/plugin-fuses": "^7.4.0",
     "@electron/fuses": "^1.8.0",
+    "@types/adm-zip": "^0.5.5",
     "@types/jest": "^29.5.12",
     "@types/mime-types": "^2.1.4",
     "@types/xml2js": "^0.4.14",

@@ -3,7 +3,7 @@ import { IFolder } from "./iFolder";
 
 export interface IFolderContents {
     name: string;
-    folders?: IFolder[];
-    files?: IFile[];
+    folders: IFolder[];
+    files: IFile[];
 }
 
