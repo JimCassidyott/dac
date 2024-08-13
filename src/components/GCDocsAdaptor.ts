@@ -26,7 +26,17 @@ class GCDocsAdapter implements IFileSystem {
         return [];
     }
 
+    /**
+     * Retrieves the contents of a folder at the specified directory path.
+     *
+     * @param {string} directoryPath - The path of the directory.
+     * @return {Promise<IFolderContents[]>} A promise that resolves to an array of IFolderContents objects representing the contents of the folder.
+     */
     public async getFolderContents(directoryPath: string): Promise<IFolderContents[]> {
+        // Implementation specific to Google Docs file system
+        // This method retrieves the contents of a folder at the specified directory path.
+        // The implementation may vary depending on the specific file system being used.
+        // For example, in the case of Google Docs, this method may make API calls to fetch the folder contents.
         // Implementation specific to GC Docs file system
         // ...
 

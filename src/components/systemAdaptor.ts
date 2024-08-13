@@ -3,9 +3,7 @@ import * as fs from 'fs/promises';
 import { IFileSystem } from '../Interfaces/IFileSystem';
 import { IFile } from '../Interfaces/iFile';
 import { IFolder } from '../Interfaces/iFolder';
-import { isAccessible } from './accessibilityChecker';
 import { IFolderContents } from '../Interfaces/iFolderContents';
-
 
 /**
  * An implementation of the IFileSystem interface for interacting with the System file system.
@@ -32,19 +30,35 @@ export class SystemAdapter implements IFileSystem {
         }
     }
 
+    /**
+     * Retrieves the contents of a folder at the specified directory path.
+     *
+     * @param {string} directoryPath - The path of the directory.
+     * @return {Promise<IFolderContents[]>} A promise that resolves to an array of IFolderContents objects representing the contents of the folder.
+     * @throws {Error} If the directory does not exist or access is denied.
+     */
     public async getFolderContents(directoryPath: string): Promise<IFolderContents[]> {
         try {
+            // Check if the directory exists and is readable
             await fs.access(directoryPath, fs.constants.R_OK);
 
+            // Get the folders and files in the directory
             const folders = await this.getFolders(directoryPath);
             const files = await this.getFiles(directoryPath);
 
-            return [{
-                name: directoryPath,
-                folders: folders,
-                files: files
-            }];
+            // Return the folder contents as an array with a single object
+            return [
+                {
+                    // Name of the directory
+                    name: directoryPath,
+                    // List of folders in the directory
+                    folders: folders,
+                    // List of files in the directory
+                    files: files
+                }
+            ];
         } catch (err: any) {
+            // Handle different error types
             if (err.code === 'ENOENT') {
                 // If the directory does not exist, throw an error
                 throw new Error(`Directory does not exist: ${directoryPath}`);

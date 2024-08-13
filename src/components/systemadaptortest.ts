@@ -1,4 +1,4 @@
-import { isAccessible } from "../src/components/accessibilityChecker";
+import { isAccessible } from "./accessibilityChecker";
 
 try {
     const result = isAccessible("a.docx");
