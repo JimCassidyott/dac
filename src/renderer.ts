@@ -64,6 +64,6 @@ function toggleFolder(icon: any) {
     nestedList.classList.toggle("active");
   }
 }
-
+console.log(window.myAPI.desktop);
 document.getElementById('file-explorer').innerHTML = generateTreeHtml(fileSystemEntries);
 

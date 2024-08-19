@@ -7,6 +7,7 @@ function createWindow() {
     height: 600,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
+      sandbox: false, // is this safe? https://www.reddit.com/r/electronjs/comments/wydus6/unable_to_require_path_and_fs_modules_in_preload/
     },
     width: 800,
   });
