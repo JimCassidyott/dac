@@ -18,6 +18,12 @@ class GCDocsAdapter implements IFileSystem {
         return [];
     }
 
+    /**
+     * Retrieves a list of folders within the specified directory.
+     *
+     * @param {string} directoryPath - The path to the directory to retrieve folders from.
+     * @return {Promise<IFolder[]>} A promise that resolves to an array of IFolder objects representing the folders.
+     */
     public async getFolders(directoryPath: string): Promise<IFolder[]> {
         // Implementation specific to GC Docs file system
         // ...

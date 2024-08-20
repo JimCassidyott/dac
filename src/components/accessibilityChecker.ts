@@ -63,7 +63,9 @@ export async function isAccessible(filePath: string): Promise<boolean> {
     let isAccessibleFlag: boolean = false;
     if (customProperties && customProperties.Properties && customProperties.Properties.property) {
         customProperties.Properties.property.forEach((prop: any) => {
+            console.log(prop);
             if (prop.$.name === "isAccessible") {
+                console.log(prop["vt:bool"]);
                 isAccessibleFlag = prop["vt:bool"] == 1;
             }
         });
@@ -83,7 +85,7 @@ export async function isAccessible(filePath: string): Promise<boolean> {
 export async function isWordDOC(filePath: string): Promise<boolean> {
     const fileExtension: string = path.extname(filePath).toLowerCase();
     if (fileExtension !== '.docx') {
-        throw new Error('The provided file is not a Word document (.docx)');
+        return false
     }
 
     return true; // Add a return statement here
