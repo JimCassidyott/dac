@@ -1,12 +1,12 @@
-import { app, BrowserWindow, ipcMain, dialog, IpcMainInvokeEvent } from "electron";
+import { app, BrowserWindow, ipcMain, IpcMainInvokeEvent } from "electron";
 import * as path from "path";
 import { SystemAdapter } from './components/systemAdaptor';
 
 const systemAdaptor = new SystemAdapter();
 
 async function handleGetContent (event: IpcMainInvokeEvent, path: string) {
-  let test  = await systemAdaptor.getFolderContents(path);
-  return test[0];
+  let content  = await systemAdaptor.getFolderContents(path);
+  return content[0];
 }
 
 function createWindow() {
