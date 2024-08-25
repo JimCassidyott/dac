@@ -1,15 +1,11 @@
-import { IFile } from './Interfaces/iFile';
-import { FileSystem } from './components/fileSystem';
+import { IFolderContents } from './Interfaces/iFolderContents';
 
-
-export interface MyAPI {
-  desktop: Array<string>,
+export interface ElectronAPI {
+  getFolderContent(path: string) : IFolderContents
 }
-
-
 
 declare global {
   interface Window {
-    myAPI: MyAPI,
+    electronAPI: ElectronAPI
   }
 }

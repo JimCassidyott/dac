@@ -1,5 +1,13 @@
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, ipcMain, dialog, IpcMainInvokeEvent } from "electron";
 import * as path from "path";
+import { SystemAdapter } from './components/systemAdaptor';
+
+const systemAdaptor = new SystemAdapter();
+
+async function handleGetContent (event: IpcMainInvokeEvent, path: string) {
+  let test  = await systemAdaptor.getFolderContents(path);
+  return test[0];
+}
 
 function createWindow() {
   // Create the browser window.
@@ -7,7 +15,6 @@ function createWindow() {
     height: 600,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
-      sandbox: false, // is this safe? https://www.reddit.com/r/electronjs/comments/wydus6/unable_to_require_path_and_fs_modules_in_preload/
     },
     width: 800,
   });
@@ -23,6 +30,7 @@ function createWindow() {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
+  ipcMain.handle('fs:getFolderContent', handleGetContent);
   createWindow();
 
   app.on("activate", function () {
