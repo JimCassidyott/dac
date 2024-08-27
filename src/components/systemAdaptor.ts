@@ -104,9 +104,10 @@ export class SystemAdapter implements IFileSystem {
                 .map((file) => { // Create IFile objects with name, path, and fileCount initialized to 0
                     return {
                         name: file.name, // Name of the file
+                        path: directoryPath, // Path of the file
                         size: "0", // Size in bytes or megabytes
                         mimeType: "", // MIME type of the file, optional
-                        isAccessible: true, // Accessibility property
+                        isAccessible: false, // Accessibility property
                         customProperties: {} // Custom properties
                     };
                 });

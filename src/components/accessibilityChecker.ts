@@ -63,9 +63,8 @@ export async function isAccessible(filePath: string): Promise<boolean> {
     let isAccessibleFlag: boolean = false;
     if (customProperties && customProperties.Properties && customProperties.Properties.property) {
         customProperties.Properties.property.forEach((prop: any) => {
-            console.log(prop);
             if (prop.$.name === "isAccessible") {
-                console.log(prop["vt:bool"]);
+
                 isAccessibleFlag = prop["vt:bool"] == 1;
             }
         });
@@ -90,22 +89,3 @@ export async function isWordDOC(filePath: string): Promise<boolean> {
 
     return true; // Add a return statement here
 }
-
-/**
- * Asynchronously checks if a file is a Word document (.docx) by verifying its file extension.
- *
- * @param {string} filePath - The path to the file to be checked.
- * @returns {Promise<boolean>} - A Promise that resolves to a boolean indicating whether the file is a Word document.
- */
-async function isWordDocument(filePath: string): Promise<boolean> {
-    const fileExtension: string = path.extname(filePath).toLowerCase();
-    return fileExtension === '.docx';
-}
-
-// const r: Promise<boolean> = checkAccessibility(filePath);
-// r.then((a: boolean) => {
-//     console.log(a);
-// }).catch((e: Error) => {
-//     console.log(e);
-// });
-
