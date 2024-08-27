@@ -1,12 +1,39 @@
 import { app, BrowserWindow, ipcMain, IpcMainInvokeEvent } from "electron";
 import * as path from "path";
 import { SystemAdapter } from './components/systemAdaptor';
+import { IFolderContents } from "./Interfaces/iFolderContents";
+import { IFile } from "./Interfaces/iFile";
+import { isAccessible } from "./components/accessibilityChecker";
 
 const systemAdaptor = new SystemAdapter();
 
+function filterDocxFiles(contents: IFile[]): IFile[] {
+  return contents.filter(file => file.name.toLowerCase().endsWith('.docx'));
+}
+
+async function markFilesAccessibility(contents: IFile[], path: string): Promise<IFile[]> {
+  const markedFiles: IFile[] = [];
+  for (const file of contents) {
+      file.isAccessible = await isAccessible(path + file.name);
+      markedFiles.push(file);
+  }
+
+  return markedFiles;
+}
+
 async function handleGetContent (event: IpcMainInvokeEvent, path: string) {
-  let content  = await systemAdaptor.getFolderContents(path);
-  return content[0];
+  try {
+    let content  = await systemAdaptor.getFolderContents(path);
+    let filteredContent: IFolderContents = content[0];
+    filteredContent.files = filterDocxFiles(filteredContent.files);
+    filteredContent.files = await markFilesAccessibility(filteredContent.files, path);
+
+    return filteredContent;
+
+  } catch (err) {
+      console.error(`Error getting contents of folder at path ${path}:`, err);
+      throw err; // Re-throw the error to handle it further up the call stack if needed
+  }
 }
 
 function createWindow() {
