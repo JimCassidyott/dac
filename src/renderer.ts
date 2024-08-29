@@ -9,10 +9,10 @@ function generateFileTree(entries: any) {
   let html = '<ul>';
   for (const entry of entries) {
     if (entry.isAccessible == true) {
-      html += `<li> <i class="fas fa-check-circle text-success fa-xs"></i> <i class="fas fa-file text-primary"></i> ${entry.name}</li>`;
+      html += `<li> <i class="fas fa-check-circle text-success fa-xs"></i> <i class="fas fa-file text-primary" data-curr-type="file"></i> ${entry.name}</li>`;
     }
     else {
-      html += `<li> <i class="fas fa-times-circle text-danger fa-xs"></i> <i class="fas fa-file text-primary"></i> ${entry.name}</li>`;
+      html += `<li> <i class="fas fa-times-circle text-danger fa-xs"></i> <i class="fas fa-file text-primary" data-curr-type="file"></i> ${entry.name}</li>`;
     }
   }
   html += '</ul>';
@@ -25,7 +25,7 @@ function generateFolderTree(entries: any, path: string) {
   for (const entry of entries) {
     let currPath = path == "./" ? path + entry.name : path + "/" + entry.name;
 
-    html += `<li><i class="fas fa-folder text-warning folder" data-curr-path="${currPath}" onclick="toggleFolder(this)"></i> ${entry.name}`;
+    html += `<li><i class="fas fa-folder text-warning folder" data-curr-type="folder" data-curr-path="${currPath}" onclick="toggleFolder(this)"></i> ${entry.name}`;
     html += `<ul class="nested">`;
     html += `</ul></li>`;
   }
@@ -50,5 +50,19 @@ async function ShowFolderContents() {
   document.getElementById('file-explorer').innerHTML = generateFileTree(content.files);
   document.getElementById('file-explorer').innerHTML += generateFolderTree(content.folders, content.name);
 }
+
+window.addEventListener('contextmenu', (event: MouseEvent) => {
+  event.preventDefault(); // Prevent the default context menu from appearing
+
+  const clickedElement = document.elementFromPoint(event.clientX, event.clientY);
+  
+  if (clickedElement && clickedElement instanceof HTMLElement) {
+    // console.log('Right-clicked element:', clickedElement);
+    window.electron.ipcRenderer.send('show-context-menu', { type: clickedElement.dataset.currType });
+  }
+  else {
+    window.electron.ipcRenderer.send('show-context-menu', { type: "other" });
+  }
+});
 
 ShowFolderContents();

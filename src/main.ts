@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, IpcMainInvokeEvent } from "electron";
+import { app, BrowserWindow, ipcMain, IpcMainInvokeEvent, Menu } from "electron";
 import * as path from "path";
 import { SystemAdapter } from './components/systemAdaptor';
 import { IFolderContents } from "./Interfaces/iFolderContents";
@@ -49,9 +49,28 @@ function createWindow() {
   // and load the index.html of the app.
   mainWindow.loadFile(path.join(__dirname, "../index.html"));
 
+  ipcMain.on('show-context-menu', (event, arg) => {
+    if (arg.type == "file" || arg.type == "folder"){
+      const contextMenu = Menu.buildFromTemplate([
+        {
+          label: 'Get Report',
+          click: () => {
+            console.log('Right clicked on element:', arg.elementId);
+          },
+        },
+      ]);
+    
+      contextMenu.popup({
+        window: mainWindow!,
+      });
+    }
+
+  });
   // Open the DevTools.
   mainWindow.webContents.openDevTools();
 }
+
+
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.

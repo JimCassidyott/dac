@@ -19,6 +19,10 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 });
 
+contextBridge.exposeInMainWorld('electron', {
+  ipcRenderer: ipcRenderer,
+});
+
 //Here you may have to add components and Apis that talk to the file system.
 //For example, you can use the fs module to read the file system and display the contents in the renderer process.
 //You can also use the ipcRenderer module to communicate between the main and renderer processes.
