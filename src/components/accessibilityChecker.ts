@@ -163,7 +163,7 @@ function saveUpdatedDocxFile(zip: typeof AdmZip, filePath: string, updatedXmlCon
  * @returns {Promise<void>} A Promise that resolves when the update is complete.
  * @throws {Error} If there is an error reading or parsing the custom properties XML.
  */
-export async function updateCustomPropertiesXml(filePath: string, isAccessible: boolean): Promise<void> {
+export async function changeIsAccessibleProperty(filePath: string, isAccessible: boolean): Promise<void> {
     try {
         const zip = readDocxFile(filePath);
         const customXmlContent = await getOrCreateCustomXmlContent(zip);
@@ -186,7 +186,7 @@ async function exampleUsage() {
     const isAccessible = false; // or false, depending on the desired value
 
     try {
-        await updateCustomPropertiesXml(filePath, isAccessible);
+        await changeIsAccessibleProperty(filePath, isAccessible);
         console.log('The isAccessible property has been updated successfully.');
     } catch (error) {
         console.error('Error updating the isAccessible property:', error);
