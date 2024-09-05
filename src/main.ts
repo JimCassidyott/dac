@@ -1,9 +1,9 @@
-import { app, BrowserWindow, ipcMain, IpcMainInvokeEvent, Menu } from "electron";
+import { app, BrowserWindow, ipcMain, IpcMainInvokeEvent, Menu, MenuItem } from "electron";
 import * as path from "path";
 import { SystemAdapter } from './components/systemAdaptor';
 import { IFolderContents } from "./Interfaces/iFolderContents";
 import { IFile } from "./Interfaces/iFile";
-import { isAccessible } from "./components/accessibilityChecker";
+import { changeIsAccessibleProperty, isAccessible } from "./components/accessibilityChecker";
 
 const systemAdaptor = new SystemAdapter();
 
@@ -13,15 +13,16 @@ function filterDocxFiles(contents: IFile[]): IFile[] {
 
 async function markFilesAccessibility(contents: IFile[], path: string): Promise<IFile[]> {
   const markedFiles: IFile[] = [];
-  for (const file of contents) {
-      file.isAccessible = await isAccessible(path + file.name);
-      markedFiles.push(file);
+  for (const file of contents) {     
+    let adjustedPath = path == './' ? (path + file.name) : (path + "/" + file.name);
+    file.isAccessible = await isAccessible(adjustedPath);
+    markedFiles.push(file);
   }
 
   return markedFiles;
 }
 
-async function handleGetContent (event: IpcMainInvokeEvent, path: string) {
+async function handleGetContent (event: IpcMainInvokeEvent, path: string) {  
   try {
     let content  = await systemAdaptor.getFolderContents(path);
     let filteredContent: IFolderContents = content[0];
@@ -58,8 +59,7 @@ function createWindow() {
             console.log('Right clicked on element:', arg.elementId);
           },
         },
-      ]);
-    
+      ]);  
       contextMenu.popup({
         window: mainWindow!,
       });
