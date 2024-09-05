@@ -67,9 +67,9 @@ export async function isAccessible(filePath: string): Promise<boolean> {
     let isAccessibleFlag: boolean = false;
     if (customProperties && customProperties.Properties && customProperties.Properties.property) {
         customProperties.Properties.property.forEach((prop: any) => {
-            if (prop.$.name === "isAccessible") {
+            if (prop.$.name === "isAccessible") {           
 
-                isAccessibleFlag = prop["vt:bool"] == 1;
+                isAccessibleFlag = prop["vt:bool"] == 'true'? true : isAccessibleFlag;
             }
         });
     } else {
@@ -193,4 +193,4 @@ async function exampleUsage() {
     }
 }
 
-exampleUsage();
+// exampleUsage();
