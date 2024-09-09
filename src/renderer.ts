@@ -70,6 +70,16 @@ window.addEventListener('contextmenu', (event: MouseEvent) => {
 });
 
 window.electronAPI.receive('context-menu-action', (data) => {
+  if (data.action == "change-accessibility-status") {
+    receiveChangeAccessibilityStatus(data);
+  }
+  else if (data.action == "get-report") {
+    receiveGetReport(data);
+    
+  }
+});
+
+function receiveChangeAccessibilityStatus(data: any) {
   if (!data.path || data.path == "") { 
     new window.Notification("Error", {body: "Something went wrong while updating accessibility status"});
     return; 
@@ -87,7 +97,31 @@ window.electronAPI.receive('context-menu-action', (data) => {
       }
     }
   }
+}
 
-})
+function receiveGetReport(data: any) {
+  // show report
+  let rightPanel = document.getElementById("right-panel");
+  let HTMLReport = `
+  <h2>Accessibility report for ${data.path}</h2>
+  <table id="accessibility-report" class="table">
+    <tbody>
+      <tr>
+        <th>Total Documents:</th>
+        <td>${data.report.numFiles}</td>
+      </tr>
+      <tr>
+        <th>Number of Accessible Documents:</th>
+        <td>${data.report.numAccessibleFiles}</td>
+      </tr>
+      <tr>
+        <th>Number of Inaccessible Documents:</th>
+        <td>${data.report.numFiles - data.report.numAccessibleFiles}</td>
+      </tr>
+    </tbody>
+  </table>`;
+
+  rightPanel.innerHTML = HTMLReport;
+}
 
 ShowFolderContents();
