@@ -5,14 +5,15 @@
 // Use preload.js to selectively enable features
 // needed in the renderer process.
 
-function generateFileTree(entries: any) {
+function generateFileTree(entries: any, path: string) {
   let html = '<ul>';
   for (const entry of entries) {
+    let currPath = path == "./" ? path + entry.name : path + "/" + entry.name;
     if (entry.isAccessible == true) {
-      html += `<li> <i class="fas fa-check-circle text-success fa-xs"></i> <i class="fas fa-file text-primary" data-curr-type="file"></i> ${entry.name}</li>`;
+      html += `<li> <i class="fas fa-check-circle text-success fa-xs"></i> <i class="fas fa-file text-primary" data-curr-type="file" data-curr-path="${currPath}"></i> ${entry.name}</li>`;
     }
     else {
-      html += `<li> <i class="fas fa-times-circle text-danger fa-xs"></i> <i class="fas fa-file text-primary" data-curr-type="file"></i> ${entry.name}</li>`;
+      html += `<li> <i class="fas fa-times-circle text-danger fa-xs"></i> <i class="fas fa-file text-primary" data-curr-type="file" data-curr-path="${currPath}"></i> ${entry.name}</li>`;
     }
   }
   html += '</ul>';
@@ -38,7 +39,7 @@ async function toggleFolder(icon: any) {
   icon.classList.toggle("fa-folder-open");
   let nestedList = icon.nextElementSibling;
   let content = await window.electronAPI.getFolderContent(icon.dataset.currPath);  
-  nestedList.innerHTML = generateFileTree(content.files);
+  nestedList.innerHTML = generateFileTree(content.files, content.name);
   nestedList.innerHTML += generateFolderTree(content.folders, content.name);
   if (nestedList) {
     nestedList.classList.toggle("active");
@@ -47,7 +48,7 @@ async function toggleFolder(icon: any) {
 
 async function ShowFolderContents() {
   let content = await window.electronAPI.getFolderContent("./");  
-  document.getElementById('file-explorer').innerHTML = generateFileTree(content.files);
+  document.getElementById('file-explorer').innerHTML = generateFileTree(content.files, content.name);
   document.getElementById('file-explorer').innerHTML += generateFolderTree(content.folders, content.name);
 }
 
@@ -58,11 +59,35 @@ window.addEventListener('contextmenu', (event: MouseEvent) => {
   
   if (clickedElement && clickedElement instanceof HTMLElement) {
     // console.log('Right-clicked element:', clickedElement);
-    window.electron.ipcRenderer.send('show-context-menu', { type: clickedElement.dataset.currType });
+    window.electron.ipcRenderer.send('show-context-menu', { 
+      type: clickedElement.dataset.currType,
+      path: clickedElement.dataset.currPath
+    });
   }
   else {
     window.electron.ipcRenderer.send('show-context-menu', { type: "other" });
   }
 });
+
+window.electronAPI.receive('context-menu-action', (data) => {
+  if (!data.path || data.path == "") { 
+    new window.Notification("Error", {body: "Something went wrong while updating accessibility status"});
+    return; 
+  }
+  let element = document.querySelector(`i[data-curr-path="${data.path}"`);
+  if (element) {
+    let prevElement = element.previousElementSibling;
+    if (prevElement && prevElement.tagName == 'I') {
+      if (data.accStatus == "true") {
+        prevElement.className = "fas fa-check-circle text-success fa-xs";
+
+      }
+      else {
+        prevElement.className = "fas fa-times-circle text-danger fa-xs";
+      }
+    }
+  }
+
+})
 
 ShowFolderContents();

@@ -1,7 +1,8 @@
 import { IFolderContents } from './Interfaces/iFolderContents';
 
 export interface ElectronAPI {
-  getFolderContent(path: string) : IFolderContents
+  getFolderContent(path: string) : IFolderContents,
+  receive: (channel: string, callback: (data: any) => void) => void;
 }
 
 declare global {

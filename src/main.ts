@@ -59,7 +59,21 @@ function createWindow() {
             console.log('Right clicked on element:', arg.elementId);
           },
         },
-      ]);  
+      ]);
+
+      if (arg.type == "file") {
+        let changeAccessibilityStatus = new MenuItem(
+          {
+            label: 'Change accessibility status',
+            click: async () => {
+              await changeIsAccessibleProperty(arg.path, !await isAccessible(arg.path));
+              let nAccessibility = await isAccessible(arg.path);
+              mainWindow.webContents.send('context-menu-action', {action: 'change-accessibility-status', path: arg.path, accStatus: nAccessibility.toString()});
+            }
+          }
+        );
+        contextMenu.append(changeAccessibilityStatus);
+      }    
       contextMenu.popup({
         window: mainWindow!,
       });
