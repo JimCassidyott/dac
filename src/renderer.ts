@@ -4,16 +4,18 @@
 // nodeIntegration is set to true in webPreferences.
 // Use preload.js to selectively enable features
 // needed in the renderer process.
+// const { Chart } = await import('chart.js');
+
 
 function generateFileTree(entries: any, path: string) {
   let html = '<ul>';
   for (const entry of entries) {
     let currPath = path == "./" ? path + entry.name : path + "/" + entry.name;
     if (entry.isAccessible == true) {
-      html += `<li> <i class="fas fa-check-circle text-success fa-xs"></i> <i class="fas fa-file text-primary" data-curr-type="file" data-curr-path="${currPath}"></i> ${entry.name}</li>`;
+      html += `<li> <i class="fas fa-check-circle text-success fa-xs"></i> <i class="fas fa-file text-primary" data-curr-type="file" data-curr-path="${currPath}" onclick="showAccStatus(this)"></i> ${entry.name}</li>`;
     }
     else {
-      html += `<li> <i class="fas fa-times-circle text-danger fa-xs"></i> <i class="fas fa-file text-primary" data-curr-type="file" data-curr-path="${currPath}"></i> ${entry.name}</li>`;
+      html += `<li> <i class="fas fa-times-circle text-danger fa-xs"></i> <i class="fas fa-file text-primary" data-curr-type="file" data-curr-path="${currPath}" onclick="showAccStatus(this)"></i> ${entry.name}</li>`;
     }
   }
   html += '</ul>';
@@ -32,6 +34,39 @@ function generateFolderTree(entries: any, path: string) {
   }
   html += '</ul>';
   return html;
+}
+
+async function showAccStatus(elem: any) {
+  let prevElement = elem.previousElementSibling;
+  let rightPanel = document.getElementById("right-panel");
+  let HTMLReport = `
+  <h2>${elem.dataset.currPath}</h2>
+  `
+  if (prevElement && prevElement.tagName == 'I') {
+    if (prevElement.classList.contains("fa-check-circle")) {
+      HTMLReport += `
+      <table id="accessibility-report" class="table">
+        <tbody>
+          <tr>
+            <th>Accessibility status:</th>
+            <td>Accessible</td>
+          </tr>
+        </tbody>
+      </table>`;
+    }
+    else {
+      HTMLReport += `
+      <table id="accessibility-report" class="table">
+        <tbody>
+          <tr>
+            <th>Accessibility status:</th>
+            <td>Not accessible</td>
+          </tr>
+        </tbody>
+      </table>`;      
+    }
+    rightPanel.innerHTML = HTMLReport;
+  }
 }
 
 async function toggleFolder(icon: any) {
@@ -119,9 +154,53 @@ function receiveGetReport(data: any) {
         <td>${data.report.numFiles - data.report.numAccessibleFiles}</td>
       </tr>
     </tbody>
-  </table>`;
+  </table>
+  </br>
+  <canvas id="pieChart" width="400" height="400"></canvas>`;
 
   rightPanel.innerHTML = HTMLReport;
+  // let Chart = require('chart.js');
+  // async function loadChart() {
+  //   const { Chart } = await import('chart.js');
+  //   const ctx = document.getElementById('pieChart') as HTMLCanvasElement;
+  //   if (ctx) {
+  //     const myChart = new Chart(ctx, {
+  //       type: 'bar',
+  //       data: {
+  //         labels: ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
+  //         datasets: [{
+  //           label: '# of Votes',
+  //           data: [12, 19, 3, 5, 2, 3],
+  //           backgroundColor: [
+  //             'rgba(255, 99, 132, 0.2)',
+  //             'rgba(54, 162, 235, 0.2)',
+  //             'rgba(255, 206, 86, 0.2)',
+  //             'rgba(75, 192, 192, 0.2)',
+  //             'rgba(153, 102, 255, 0.2)',
+  //             'rgba(255, 159, 64, 0.2)',
+  //           ],
+  //           borderColor: [
+  //             'rgba(255, 99, 132, 1)',
+  //             'rgba(54, 162, 235, 1)',
+  //             'rgba(255, 206, 86, 1)',
+  //             'rgba(75, 192, 192, 1)',
+  //             'rgba(153, 102, 255, 1)',
+  //             'rgba(255, 159, 64, 1)',
+  //           ],
+  //           borderWidth: 1
+  //         }]
+  //       },
+  //       options: {
+  //         scales: {
+  //           y: {
+  //             beginAtZero: true
+  //           }
+  //         }
+  //       }
+  //     });
+  //   }
+  // }
+  // loadChart();
 }
 
 ShowFolderContents();
