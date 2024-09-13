@@ -137,6 +137,7 @@ function receiveChangeAccessibilityStatus(data: any) {
 function receiveGetReport(data: any) {
   // show report
   let rightPanel = document.getElementById("right-panel");
+  let numInAccessibleFiles = data.report.numFiles - data.report.numAccessibleFiles;
   let HTMLReport = `
   <h2>Accessibility report for ${data.path}</h2>
   <table id="accessibility-report" class="table">
@@ -151,56 +152,43 @@ function receiveGetReport(data: any) {
       </tr>
       <tr>
         <th>Number of Inaccessible Documents:</th>
-        <td>${data.report.numFiles - data.report.numAccessibleFiles}</td>
+        <td>${numInAccessibleFiles}</td>
       </tr>
     </tbody>
   </table>
   </br>
-  <canvas id="pieChart" width="400" height="400"></canvas>`;
+  <div class="container">
+    <div class="row justify-content-center">
+      <canvas id="pieChart" class="pieChartCanvas" width="400" height="400"></canvas>
+    </div>
+  </div>`;
 
   rightPanel.innerHTML = HTMLReport;
-  // let Chart = require('chart.js');
-  // async function loadChart() {
-  //   const { Chart } = await import('chart.js');
-  //   const ctx = document.getElementById('pieChart') as HTMLCanvasElement;
-  //   if (ctx) {
-  //     const myChart = new Chart(ctx, {
-  //       type: 'bar',
-  //       data: {
-  //         labels: ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
-  //         datasets: [{
-  //           label: '# of Votes',
-  //           data: [12, 19, 3, 5, 2, 3],
-  //           backgroundColor: [
-  //             'rgba(255, 99, 132, 0.2)',
-  //             'rgba(54, 162, 235, 0.2)',
-  //             'rgba(255, 206, 86, 0.2)',
-  //             'rgba(75, 192, 192, 0.2)',
-  //             'rgba(153, 102, 255, 0.2)',
-  //             'rgba(255, 159, 64, 0.2)',
-  //           ],
-  //           borderColor: [
-  //             'rgba(255, 99, 132, 1)',
-  //             'rgba(54, 162, 235, 1)',
-  //             'rgba(255, 206, 86, 1)',
-  //             'rgba(75, 192, 192, 1)',
-  //             'rgba(153, 102, 255, 1)',
-  //             'rgba(255, 159, 64, 1)',
-  //           ],
-  //           borderWidth: 1
-  //         }]
-  //       },
-  //       options: {
-  //         scales: {
-  //           y: {
-  //             beginAtZero: true
-  //           }
-  //         }
-  //       }
-  //     });
-  //   }
-  // }
-  // loadChart();
+  function loadChart() {
+    const ctx = document.getElementById('pieChart') as HTMLCanvasElement;
+    // Check if Chart.js is available (loaded from the <script> tag)
+    if (window['Chart']) {
+      // Initialize the chart
+      const myChart = new window['Chart'](ctx, {
+        type: 'pie', // Example: 'bar', 'line', etc.
+        data: {
+          labels: ['Accessible', 'Not Accessible'],
+          datasets: [{
+            label: `Number of documents`,
+            data: [data.report.numAccessibleFiles, numInAccessibleFiles],
+            backgroundColor: [
+              'rgb(54, 162, 235)',
+              'rgb(255, 99, 132)'
+            ],
+            hoverOffset: 4
+          }]
+        }
+      });
+    } else {
+      console.error('Chart.js is not loaded');
+    }
+  }
+  loadChart();
 }
 
 ShowFolderContents();

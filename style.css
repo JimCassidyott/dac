@@ -84,3 +84,8 @@ footer {
 .wet-footer {
   background-color: #999;
 }
+
+.pieChartCanvas {
+  height: 400px !important;
+  width: 400px !important;
+}

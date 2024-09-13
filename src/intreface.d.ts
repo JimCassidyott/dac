@@ -1,3 +1,4 @@
+import { Chart } from 'chart.js';
 import { IFolderContents } from './Interfaces/iFolderContents';
 
 export interface ElectronAPI {
@@ -16,5 +17,11 @@ declare global {
     electron: {
       ipcRenderer: import('electron').IpcRenderer;
     };
+  }
+}
+
+declare global {
+  interface Window {
+    Chart: typeof Chart;
   }
 }
