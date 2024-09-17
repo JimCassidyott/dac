@@ -138,6 +138,13 @@ function receiveGetReport(data: any) {
   // show report
   let rightPanel = document.getElementById("right-panel");
   let numInAccessibleFiles = data.report.numFiles - data.report.numAccessibleFiles;
+  let accessiblePercentage = (data.report.numAccessibleFiles / data.report.numFiles) * 100;
+  // Check for NaN, undefined, or division by zero and round to 1 decimal point
+  if (!isFinite(accessiblePercentage)) {
+      accessiblePercentage = 0;
+  } else {
+      accessiblePercentage = Math.round(accessiblePercentage * 10) / 10;
+  }
   let HTMLReport = `
   <h2>Accessibility report for ${data.path}</h2>
   <table id="accessibility-report" class="table">
@@ -154,6 +161,10 @@ function receiveGetReport(data: any) {
         <th>Number of Inaccessible Documents:</th>
         <td>${numInAccessibleFiles}</td>
       </tr>
+      <tr>
+        <th>File Accessibility Rate:</th>
+        <td>${accessiblePercentage}%</td>
+      </tr>   
     </tbody>
   </table>
   </br>
