@@ -31,7 +31,16 @@ function createWindow() {
             },
           },
         );
+        let runAccessibilityTest = new MenuItem(
+          {
+            label: 'Run accessibility test',
+            click: async () => {
+            // call tester
+            }
+          }
+        );
         contextMenu.append(getReportMenuItem);
+        contextMenu.append(runAccessibilityTest);
       }
       else if (arg.type == "file") {
         let changeAccessibilityStatus = new MenuItem(
@@ -44,6 +53,15 @@ function createWindow() {
             }
           }
         );
+        let runAccessibilityTest = new MenuItem(
+          {
+            label: 'Run accessibility test',
+            click: async () => {
+              let result = await testFile(arg.path);
+            }
+          }
+        );
+        contextMenu.append(runAccessibilityTest);
         contextMenu.append(changeAccessibilityStatus);
       }    
       contextMenu.popup({
@@ -140,4 +158,8 @@ async function handleGetReport(path: string) {
       console.error(`Error getting contents of folder at path ${path}:`, err);
       throw err; // Re-throw the error to handle it further up the call stack if needed
   }
+}
+
+async function testFile(path: string) {
+  // call tester 
 }
