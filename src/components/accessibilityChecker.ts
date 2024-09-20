@@ -146,7 +146,7 @@ function updateIsAccessibleProperty(properties: any, isAccessible: boolean): voi
 /**
  * Writes the updated custom.xml content back to the zip object and saves the .docx file.
  *
- * @param {AdmZip} zip - The zip object representing the .docx file.
+ * @param {typeOf AdmZip} zip - The zip object representing the .docx file.
  * @param {string} filePath - The path to the Word document.
  * @param {string} updatedXmlContent - The updated custom.xml content.
  */
