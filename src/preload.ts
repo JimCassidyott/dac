@@ -1,9 +1,12 @@
 // All of the Node.js APIs are available in the preload process.
 // It has the same sandbox as a Chrome extension.
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  getFolderContent: (path: string) => ipcRenderer.invoke('fs:getFolderContent', path)
+  getFolderContent: (path: string) => ipcRenderer.invoke('fs:getFolderContent', path),
+  receive: (channel: string, callback: (data: any) => void) => {
+    ipcRenderer.on(channel, (event: IpcRendererEvent, data: any) => callback(data));
+  }
 });
 
 window.addEventListener("DOMContentLoaded", () => {
