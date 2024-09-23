@@ -39,8 +39,10 @@ function generateFolderTree(entries: any, path: string) {
 async function showAccStatus(elem: any) {
   let prevElement = elem.previousElementSibling;
   let rightPanel = document.getElementById("right-panel");
+  let fullPath = elem.dataset.currPath;
+  let fileName = fullPath.split('/').pop();
   let HTMLReport = `
-  <h2>${elem.dataset.currPath}</h2>
+  <h2>${fileName}</h2>
   `
   if (prevElement && prevElement.tagName == 'I') {
     if (prevElement.classList.contains("fa-check-circle")) {
@@ -136,6 +138,7 @@ function receiveChangeAccessibilityStatus(data: any) {
 
 function receiveGetReport(data: any) {
   // show report
+  const folderName = data.path.split('/').pop()  || data.path;
   let rightPanel = document.getElementById("right-panel");
   let numInAccessibleFiles = data.report.numFiles - data.report.numAccessibleFiles;
   let accessiblePercentage = (data.report.numAccessibleFiles / data.report.numFiles) * 100;
@@ -146,7 +149,7 @@ function receiveGetReport(data: any) {
       accessiblePercentage = Math.round(accessiblePercentage * 10) / 10;
   }
   let HTMLReport = `
-  <h2>Accessibility report for ${data.path}</h2>
+  <h2>Accessibility report for ${folderName}</h2>
   <table id="accessibility-report" class="table">
     <tbody>
       <tr>
