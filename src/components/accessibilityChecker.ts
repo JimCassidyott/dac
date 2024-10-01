@@ -250,7 +250,7 @@ export async function testAccessiblity(inputFilePath: string): Promise<Boolean> 
 
 // exampleUsage();
 
-const inputFilePath = 'output.docx';
+const inputFilePath = 'myfile.docx';
 
 testAccessiblity(inputFilePath).then(isAccessible => {
     changeIsAccessibleProperty(inputFilePath, isAccessible === true);
