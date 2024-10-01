@@ -1,9 +1,18 @@
 import * as path from 'path';
 const AdmZip = require('adm-zip'); // Using require here is important. If you use import, it will throw an error.
 import * as xml2js from 'xml2js';
+import { execSync } from 'child_process';
 import * as fs from 'fs';
-import PizZip from 'pizzip';
-import Docxtemplater from 'docxtemplater';
+import * as pa11y from 'pa11y';
+
+const errorCodesToIgnore = [
+    'WCAG2AAA.Principle3.Guideline3_1.3_1_1.H57.3.Lang',
+    'WCAG2AAA.Principle3.Guideline3_1.3_1_1.H57.3.XmlLang',
+];
+
+const pa11yOptions = {
+    standard: 'WCAG2AAA', // You can change this to other standards like 'Section508' or 'WCAG21AA'
+};
 
 
 /**
@@ -67,9 +76,9 @@ export async function isAccessible(filePath: string): Promise<boolean> {
     let isAccessibleFlag: boolean = false;
     if (customProperties && customProperties.Properties && customProperties.Properties.property) {
         customProperties.Properties.property.forEach((prop: any) => {
-            if (prop.$.name === "isAccessible") {           
+            if (prop.$.name === "isAccessible") {
 
-                isAccessibleFlag = prop["vt:bool"] == 'true'? true : isAccessibleFlag;
+                isAccessibleFlag = prop["vt:bool"] == 'true' ? true : isAccessibleFlag;
             }
         });
     } else {
@@ -181,16 +190,75 @@ export async function changeIsAccessibleProperty(filePath: string, isAccessible:
     }
 }
 
-async function exampleUsage() {
-    const filePath = 'jim.docx';
-    const isAccessible = false; // or false, depending on the desired value
-
+/**
+ * Runs a Pandoc command synchronously. Throws an exception if the command
+ * doesn't run successfully.
+ *
+ * @param {string} command - The Pandoc command to run.
+ */
+function convertDocxToHtml(inputFilePath: string, outputFilePath: string): void {
+    const command = `pandoc "${inputFilePath}" -f docx -t html -o "${outputFilePath}" --standalone --metadata title=deleteme`;
     try {
-        await changeIsAccessibleProperty(filePath, isAccessible);
-        console.log('The isAccessible property has been updated successfully.');
+        execSync(command);
     } catch (error) {
-        console.error('Error updating the isAccessible property:', error);
+        throw new Error(`Error running Pandoc command: ${error.message}`);
     }
 }
 
+/**
+ * Checks if a given input file is accessible by converting it to HTML and
+ * running accessibility checks on the resulting HTML.
+ *
+ * @param {string} inputFilePath - The path to the input file.
+ * @return {Promise<Boolean>} A promise that resolves to a boolean indicating
+ * whether the input file is accessible.
+ */
+export async function testAccessiblity(inputFilePath: string): Promise<Boolean> {
+    let filteredResults = [];
+    try {
+        // Check if the input file exists
+        if (!fs.existsSync(inputFilePath)) {
+            throw new Error(`Input file does not exist: ${inputFilePath}`);
+        }
+        const outputFilePath = inputFilePath + '.html';
+        // Run the Pandoc command synchronously
+        convertDocxToHtml(inputFilePath, outputFilePath);
+
+        // Use pa11y to check the HTML file for accessibility issues
+        const results = await pa11y(outputFilePath, pa11yOptions as any)
+        const filteredResults = results.issues.filter(issue => !errorCodesToIgnore.includes(issue.code));
+
+        // console.log(results.issues, filteredResults.length);
+        return filteredResults.length === 0
+    } catch (error) {
+        console.error(`Error during conversion or accessibility check: ${error.message}`);
+    } finally {
+        // fs.unlinkSync(outputFilePath);
+    }
+}
+// async function exampleUsage() {
+//     const filePath = 'C:\\Users\\jimca\\Documents\\x\\jim.docx';
+//     const isAccessible = true; // or false, depending on the desired value
+
+//     try {
+//         await changeIsAccessibleProperty(filePath, isAccessible);
+//         console.log('The isAccessible property has been updated successfully.');
+//     } catch (error) {
+//         console.error('Error updating the isAccessible property:', error);
+//     }
+// }
+
 // exampleUsage();
+
+const inputFilePath = 'output.docx';
+
+testAccessiblity(inputFilePath).then(isAccessible => {
+    changeIsAccessibleProperty(inputFilePath, isAccessible === true);
+    if (isAccessible) {
+        console.log('The document is accessible.');
+    } else {
+        console.log('The document is not accessible.');
+    }
+}).catch(error => {
+    console.error('An error occurred:', error);
+});

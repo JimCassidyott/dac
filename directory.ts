@@ -40,84 +40,25 @@ function listFilesAndDirectories(dirPath: string): DirectoryContents {
     }
 }
 
+/**
+ * Lists all .docx files in the given directory and its subdirectories.
+ * Converts the file paths to full file paths.
+ *
+ * @param {string} dirPath - The path to the directory.
+ * @returns {string[]} - A list of .docx files with full file paths.
+ */
+function listDocxFiles(dirPath: string): string[] {
+    const { files } = listFilesAndDirectories(dirPath);
+    return files
+        .filter(file => path.extname(file) === '.docx')
+        .map(file => path.resolve(file));
+}
 // Example usage
-const directoryPath = './x';
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+const directoryPath = '../../../x';
 
 const { files, directories } = listFilesAndDirectories(directoryPath);
 console.log('Files:', files);
 console.log('Directories:', directories);
+
+const docxFiles = listDocxFiles(directoryPath);
+console.log('DOCX Files:', docxFiles);

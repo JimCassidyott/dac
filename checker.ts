@@ -32,17 +32,12 @@ class AccessibilityChecker {
                 throw new Error(`Input file does not exist: ${inputFilePath}`);
             }
 
-            // // Check if the output file exists
-            // if (!fs.existsSync(outputFilePath)) {
-            //     throw new Error(`Output file was not created: ${outputFilePath}`);
-            // }
 
             // Run the Pandoc command synchronously
             this.convertDocxToHtml(inputFilePath);
 
             // Use pa11y to check the HTML file for accessibility issues
             const results = await pa11y(outputFilePath, pa11yOptions as any)
-            // const errorCodes = results.issues.map(issue => issue.code);
             const filteredResults = results.issues.filter(issue => !errorCodesToIgnore.includes(issue.code));
             return filteredResults.length === 0
         } catch (error) {
