@@ -4,6 +4,8 @@ import { SystemAdapter } from './components/systemAdaptor';
 import { IFolderContents } from "./Interfaces/iFolderContents";
 import { IFile } from "./Interfaces/iFile";
 import { changeIsAccessibleProperty, isAccessible, testAccessiblity } from "./components/accessibilityChecker";
+import ProgressBar = require('electron-progressbar');
+import { listDocxFiles } from './directory';
 
 function createWindow() {
   // Create the browser window.
@@ -35,7 +37,24 @@ function createWindow() {
           {
             label: 'Run accessibility test',
             click: async () => {
-            // call tester
+              let progressBar = createProgressBar(`Test documents in ${arg.path.split('/').pop()  || arg.path}`, 
+              'Calculating number of documents...');
+              let res = await testFolder(arg.path, progressBar);
+              if (res.numfiles == 0) {
+                mainWindow.webContents.send("context-menu-action", {
+                  action: 'run-folder-accessibility-test',
+                  path: arg.path,
+                  testStatus: "noDocuments"
+                });
+              }
+              else {
+                mainWindow.webContents.send("context-menu-action", {
+                  action: 'run-folder-accessibility-test',
+                  path: arg.path,
+                  testStatus: "completed",
+                  results: res.results
+                });
+              }
             }
           }
         );
@@ -57,8 +76,12 @@ function createWindow() {
           {
             label: 'Run accessibility test',
             click: async () => {
+              let ProgressBarText = `Test document ${arg.path.split('/').pop()  || arg.path}`;
+              let progressBarDetail = 'Testing...';
+              let progressBar = createProgressBar(ProgressBarText, progressBarDetail);
               try {
                 let result = await testFile(arg.path);
+                updateProgressBarValue(progressBar, 100);
                 mainWindow.webContents.send("context-menu-action", { 
                   action: 'run-accessibility-test', 
                   path: arg.path, 
@@ -68,6 +91,7 @@ function createWindow() {
               } catch (error) {
                 // Handle the error here
                 console.error('Error in accessibility test:', error.message);
+                updateProgressBarValue(progressBar, 100);
                 new Notification({
                   title: "Error",
                   body: `Failed to run accessibility test: ${error.message}`
@@ -191,4 +215,66 @@ async function testFile(path: string): Promise<boolean> {
     // Rethrow the error to be handled by the calling code
     throw new Error(`Accessibility test failed: ${error.message || error}`);
   }
+}
+
+async function testFolder(path: string, progressBar: ProgressBar) {
+  let documents = listDocxFiles(path);
+  let testResults = {
+    numfiles: documents.length,
+    results: [] as { path: string; success: boolean; passed: boolean | null }[]
+  };
+  if (documents.length == 0) {
+    updateProgressBarValue(progressBar, 100);
+    return testResults;
+  }
+  for (let i = 0; i < documents.length; i++) {
+    progressBar.detail = `Testing file ${i+1} out of ${documents.length}...`;
+    updateProgressBarValue(progressBar, ((1/documents.length) * 100));
+    try{
+      let accessibilityStatus = await testFile(documents[i]);
+      testResults.results.push({
+        path: documents[i],
+        success: true,  // The test ran successfully
+        passed: accessibilityStatus  // Assuming testFile returns true if passed
+      });
+      
+    }
+    catch(error){
+      console.log(error);
+      testResults.results.push({
+        path: documents[i],
+        success: false,  // The test failed to run
+        passed: false  // Indicate that the test result is unknown due to failure
+      });
+    }
+  }
+  updateProgressBarValue(progressBar, 100);
+  return testResults;
+}
+
+function createProgressBar(textStr: string, detailStr: string): ProgressBar {
+  let progressBar = new ProgressBar({
+    title: 'Accessibility Test',
+    text: textStr,
+    detail: detailStr,
+    indeterminate: false,
+    browserWindow: {
+      webPreferences: {
+        nodeIntegration: true,  // Allows Node.js modules
+        contextIsolation: false  // Ensures compatibility with older Electron versions
+      }
+    }
+  });
+  progressBar
+    .on('completed', () => {
+      progressBar.detail = 'Test completed!';
+    })
+    .on('aborted', () => {
+      console.log('Progress bar aborted');
+    });
+  return progressBar
+}
+
+function updateProgressBarValue(progressBar: ProgressBar, increment: number) {
+  progressBar.value += increment;
 }

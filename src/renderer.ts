@@ -116,6 +116,9 @@ window.electronAPI.receive('context-menu-action', (data) => {
   else if (data.action == "run-accessibility-test") {
     recieveTestResults(data);
   }
+  else if (data.action == "run-folder-accessibility-test") {
+    recieveFolderTestResults(data);
+  }
 });
 
 function receiveChangeAccessibilityStatus(data: any) {
@@ -139,6 +142,7 @@ function receiveChangeAccessibilityStatus(data: any) {
 }
 
 function receiveGetReport(data: any) {
+  // TODO: Use walker and get report for file in subfolders as well
   // show report
   const folderName = data.path.split('/').pop()  || data.path;
   let rightPanel = document.getElementById("right-panel");
@@ -216,10 +220,8 @@ function recieveTestResults(data: any) {
   let HTMLReport = `<h2>Accessibility test result for ${data.path.split('/').pop()}</h2>`;
   if (data.testStatus == "error") {
     HTMLReport += `
-      <table id="accessibility-report" class="table">
         <p>Accessibility test incomplete. Tester gave the error: ${data.accStatus}</p>
-        <p>Please contact application developers for more infomation.</p>
-      </table>`;
+        <p>Please contact application developers for more infomation.</p>`;
   }
   else {
     receiveChangeAccessibilityStatus(data);
@@ -236,6 +238,39 @@ function recieveTestResults(data: any) {
           </tr>
         </tbody>
       </table>`;
+  }
+  rightPanel.innerHTML = HTMLReport;
+}
+
+function recieveFolderTestResults(data: any) {
+  if (!data.path || data.path == "") { 
+    new window.Notification("Error", {body: "Something went wrong while updating accessibility status"});
+    return; 
+  }
+  let rightPanel = document.getElementById("right-panel");
+  let HTMLReport = `<h2>Accessibility test result for ${data.path.split('/').pop()}</h2>`;
+  if (data.testStatus == "noDocuments") {
+    HTMLReport += `<p>No documents were found in this folder or any sub-folders</p>`;
+  }
+  else {
+    // TODO: traverse the list of file paths and search the frontend for those paths
+    // if they exist update the accessibility icon. 
+    HTMLReport += `
+    <table class="table">
+      <tr>
+        <th>Filename</th>
+        <th>Accessibility Test status:</th>
+        <th>Document accessibility status:</th>
+      </tr>`;
+    for (let doc = 0; doc < data.results.length; doc++) {
+      HTMLReport += `
+        <tr>
+          <td>${data.results[doc].path}</td>
+          <td>${data.results[doc].success ? 'Completed' : 'Error'}</td>
+          <td>${data.results[doc].path}</td>
+        </tr>`;
+    }
+    HTMLReport += `</table>`;
   }
   rightPanel.innerHTML = HTMLReport;
 }

@@ -128,7 +128,7 @@ async function getOrCreateCustomXmlContent(zip: typeof AdmZip): Promise<string> 
     if (!customXml) {
         return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/custom-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"></Properties>';
     }
-    return customXml.getData().toString('utf8'); // this line throws error "ADM-ZIP: No descriptor present" with some .docx files
+    return customXml.getData().toString('utf8'); //FIXME: this line throws error "ADM-ZIP: No descriptor present" with some .docx files
 }
 
 /**
@@ -231,7 +231,9 @@ export async function testAccessiblity(inputFilePath: string): Promise<boolean> 
         // console.log(results.issues, filteredResults.length);
         return filteredResults.length === 0
     } catch (error) {
-        console.error(`Error during conversion or accessibility check: ${error.message}`);
+        // console.error(`Error during conversion or accessibility check: ${error.message}`);
+        throw error;
+        
     } finally {
         // fs.unlinkSync(outputFilePath);
     }
