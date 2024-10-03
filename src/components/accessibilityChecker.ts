@@ -128,7 +128,7 @@ async function getOrCreateCustomXmlContent(zip: typeof AdmZip): Promise<string> 
     if (!customXml) {
         return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/custom-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"></Properties>';
     }
-    return customXml.getData().toString('utf8');
+    return customXml.getData().toString('utf8'); // this line throws error "ADM-ZIP: No descriptor present" with some .docx files
 }
 
 /**
@@ -210,10 +210,10 @@ function convertDocxToHtml(inputFilePath: string, outputFilePath: string): void 
  * running accessibility checks on the resulting HTML.
  *
  * @param {string} inputFilePath - The path to the input file.
- * @return {Promise<Boolean>} A promise that resolves to a boolean indicating
+ * @return {Promise<boolean>} A promise that resolves to a boolean indicating
  * whether the input file is accessible.
  */
-export async function testAccessiblity(inputFilePath: string): Promise<Boolean> {
+export async function testAccessiblity(inputFilePath: string): Promise<boolean> {
     let filteredResults = [];
     try {
         // Check if the input file exists

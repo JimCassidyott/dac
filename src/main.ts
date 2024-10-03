@@ -1,9 +1,9 @@
-import { app, BrowserWindow, ipcMain, IpcMainInvokeEvent, Menu, MenuItem } from "electron";
+import { app, BrowserWindow, ipcMain, IpcMainInvokeEvent, Menu, MenuItem, Notification } from "electron";
 import * as path from "path";
 import { SystemAdapter } from './components/systemAdaptor';
 import { IFolderContents } from "./Interfaces/iFolderContents";
 import { IFile } from "./Interfaces/iFile";
-import { changeIsAccessibleProperty, isAccessible } from "./components/accessibilityChecker";
+import { changeIsAccessibleProperty, isAccessible, testAccessiblity } from "./components/accessibilityChecker";
 
 function createWindow() {
   // Create the browser window.
@@ -57,7 +57,29 @@ function createWindow() {
           {
             label: 'Run accessibility test',
             click: async () => {
-              let result = await testFile(arg.path);
+              try {
+                let result = await testFile(arg.path);
+                mainWindow.webContents.send("context-menu-action", { 
+                  action: 'run-accessibility-test', 
+                  path: arg.path, 
+                  testStatus: "completed", 
+                  accStatus: result.toString() 
+                });
+              } catch (error) {
+                // Handle the error here
+                console.error('Error in accessibility test:', error.message);
+                new Notification({
+                  title: "Error",
+                  body: `Failed to run accessibility test: ${error.message}`
+                }).show();
+              
+                mainWindow.webContents.send("context-menu-action", { 
+                  action: 'run-accessibility-test', 
+                  path: arg.path, 
+                  testStatus: "error", 
+                  accStatus: `Error: ${error.message}`
+                });
+              }
             }
           }
         );
@@ -160,6 +182,13 @@ async function handleGetReport(path: string) {
   }
 }
 
-async function testFile(path: string) {
-  // call tester 
+async function testFile(path: string): Promise<boolean> {
+  try {
+    const fileIsAccessible = await testAccessiblity(path); 
+    changeIsAccessibleProperty(path, fileIsAccessible === true);
+    return fileIsAccessible; 
+  } catch (error) {
+    // Rethrow the error to be handled by the calling code
+    throw new Error(`Accessibility test failed: ${error.message || error}`);
+  }
 }

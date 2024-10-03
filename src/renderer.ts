@@ -112,7 +112,9 @@ window.electronAPI.receive('context-menu-action', (data) => {
   }
   else if (data.action == "get-report") {
     receiveGetReport(data);
-    
+  }
+  else if (data.action == "run-accessibility-test") {
+    recieveTestResults(data);
   }
 });
 
@@ -203,6 +205,41 @@ function receiveGetReport(data: any) {
     }
   }
   loadChart();
+}
+
+function recieveTestResults(data: any) {
+  if (!data.path || data.path == "") { 
+    new window.Notification("Error", {body: "Something went wrong while updating accessibility status"});
+    return; 
+  }
+  let element = document.querySelector(`i[data-curr-path="${data.path}"`);//
+  const folderName = data.path.split('/').pop()  || data.path;
+  let rightPanel = document.getElementById("right-panel");
+  let HTMLReport = `<h2>Accessibility test result for ${data.path.split('/').pop()}</h2>`;
+  if (data.testStatus == "error") {
+    HTMLReport += `
+      <table id="accessibility-report" class="table">
+        <p>Accessibility test incomplete. Tester gave the error: ${data.accStatus}</p>
+        <p>Please contact application developers for more infomation.</p>
+      </table>`;
+  }
+  else {
+    receiveChangeAccessibilityStatus(data);
+    HTMLReport += `
+      <table id="accessibility-report" class="table">
+        <tbody>
+          <tr>
+            <th>Accessibility Test status:</th>
+            <td>Completed</td>
+          </tr>
+          <tr>
+            <th>Document accessibility status:</th>
+            <td>Accessible</td>
+          </tr>
+        </tbody>
+      </table>`;
+  }
+  rightPanel.innerHTML = HTMLReport;
 }
 
 ShowFolderContents();
