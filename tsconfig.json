@@ -7,7 +7,8 @@
     "baseUrl": ".",
     "paths": {
       "*": ["node_modules/*"]
-    }
+    },
+    "target": "ES2015"  // Add this line to specify the ECMAScript target version
   },
   "include": [
     "src/**/*"
