@@ -186,7 +186,7 @@ function receiveGetReport(data: any) {
     if (window['Chart']) {
       // Initialize the chart
       const myChart = new window['Chart'](ctx, {
-        type: 'pie', // Example: 'bar', 'line', etc.
+        type: 'pie', 
         data: {
           labels: ['Accessible', 'Not Accessible'],
           datasets: [{
@@ -212,8 +212,6 @@ function recieveTestResults(data: any) {
     new window.Notification("Error", {body: "Something went wrong while updating accessibility status"});
     return; 
   }
-  let element = document.querySelector(`i[data-curr-path="${data.path}"`);//
-  const folderName = data.path.split('/').pop()  || data.path;
   let rightPanel = document.getElementById("right-panel");
   let HTMLReport = `<h2>Accessibility test result for ${data.path.split('/').pop()}</h2>`;
   if (data.testStatus == "error") {
@@ -234,7 +232,7 @@ function recieveTestResults(data: any) {
           </tr>
           <tr>
             <th>Document accessibility status:</th>
-            <td>Accessible</td>
+            <td>${data.accStatus}</td>
           </tr>
         </tbody>
       </table>`;
