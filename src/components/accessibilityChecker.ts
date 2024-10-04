@@ -233,7 +233,7 @@ export async function testAccessiblity(inputFilePath: string): Promise<boolean> 
     } catch (error) {
         // console.error(`Error during conversion or accessibility check: ${error.message}`);
         throw error;
-        
+
     } finally {
         // fs.unlinkSync(outputFilePath);
     }
@@ -252,7 +252,7 @@ export async function testAccessiblity(inputFilePath: string): Promise<boolean> 
 
 // exampleUsage();
 
-const inputFilePath = 'myfile.docx';
+const inputFilePath = '..\\..\\demofiles\\accessible\\accessible.docx';
 
 testAccessiblity(inputFilePath).then(isAccessible => {
     changeIsAccessibleProperty(inputFilePath, isAccessible === true);
