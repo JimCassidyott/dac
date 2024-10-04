@@ -122,6 +122,8 @@ window.electronAPI.receive('context-menu-action', (data) => {
 });
 
 function receiveChangeAccessibilityStatus(data: any) {
+  console.log(data);
+  
   if (!data.path || data.path == "") { 
     new window.Notification("Error", {body: "Something went wrong while updating accessibility status"});
     return; 
@@ -142,7 +144,6 @@ function receiveChangeAccessibilityStatus(data: any) {
 }
 
 function receiveGetReport(data: any) {
-  // TODO: Use walker and get report for file in subfolders as well
   // show report
   const folderName = data.path.split('/').pop()  || data.path;
   let rightPanel = document.getElementById("right-panel");
@@ -253,8 +254,6 @@ function recieveFolderTestResults(data: any) {
     HTMLReport += `<p>No documents were found in this folder or any sub-folders</p>`;
   }
   else {
-    // TODO: traverse the list of file paths and search the frontend for those paths
-    // if they exist update the accessibility icon. 
     HTMLReport += `
     <table class="table">
       <tr>
@@ -263,11 +262,13 @@ function recieveFolderTestResults(data: any) {
         <th>Document accessibility status:</th>
       </tr>`;
     for (let doc = 0; doc < data.results.length; doc++) {
+      let iconData = {path: `./${data.results[doc].path}`, accStatus: `${data.results[doc].passed}`}; 
+      receiveChangeAccessibilityStatus(iconData);
       HTMLReport += `
         <tr>
           <td>${data.results[doc].path}</td>
           <td>${data.results[doc].success ? 'Completed' : 'Error'}</td>
-          <td>${data.results[doc].path}</td>
+          <td>${data.results[doc].passed}</td>
         </tr>`;
     }
     HTMLReport += `</table>`;
