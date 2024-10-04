@@ -182,24 +182,31 @@ async function handleGetContent (event: IpcMainInvokeEvent, path: string) {
 }
 
 async function handleGetReport(path: string) {
-  try {
-    let content  = await systemAdaptor.getFolderContents(path);
-    let filteredContent: IFolderContents = content[0];
+  try{
+    let documents = listDocxFiles(path);
     let report = {
       path: path,
       numFiles: 0, 
       numAccessibleFiles: 0,
       files: [] as IFile[]
     };
-    filteredContent.files = filterDocxFiles(filteredContent.files);
-    filteredContent.files = await markFilesAccessibility(filteredContent.files, path);
-    
-    report.numFiles = filteredContent.files.length;
-    report.numAccessibleFiles = filteredContent.files.filter(file => file.isAccessible).length;
-    report.files = filteredContent.files;
-
+    let documentList: IFile[] = await Promise.all(
+      documents.map(async (filePath) => { // Create IFile objects with name, path, and fileCount initialized to 0
+        return {
+          name: filePath.split('/').pop() || filePath, // Name of the file
+          path: filePath, // Path of the file
+          size: "0", // Size in bytes or megabytes
+          mimeType: "", // MIME type of the file, optional
+          isAccessible: await isAccessible(filePath), // Accessibility property
+          customProperties: {} // Custom properties
+        };
+      })
+    );
+      report.numFiles = documentList.length;
+      report.numAccessibleFiles = documentList.filter(doc => doc.isAccessible).length;
+      report.files = documentList;
+  
     return report;
-
   } catch (err) {
       console.error(`Error getting contents of folder at path ${path}:`, err);
       throw err; // Re-throw the error to handle it further up the call stack if needed

@@ -144,7 +144,6 @@ function receiveChangeAccessibilityStatus(data: any) {
 }
 
 function receiveGetReport(data: any) {
-  // TODO: Use walker and get report for file in subfolders as well
   // show report
   const folderName = data.path.split('/').pop()  || data.path;
   let rightPanel = document.getElementById("right-panel");
@@ -255,9 +254,6 @@ function recieveFolderTestResults(data: any) {
     HTMLReport += `<p>No documents were found in this folder or any sub-folders</p>`;
   }
   else {
-    // TODO: traverse the list of file paths and search the frontend for those paths
-    // if they exist update the accessibility icon. 
-    // let iconData = {};
     HTMLReport += `
     <table class="table">
       <tr>
