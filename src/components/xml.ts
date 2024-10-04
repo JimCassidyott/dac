@@ -13,6 +13,7 @@ import { parseStringPromise } from 'xml2js';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as unzipper from 'unzipper';
+import * as JSZip from 'jszip';
 
 /**
  * Represents a custom property extracted from the document or XML.
@@ -157,6 +158,111 @@ function createCustomPropertyCollectionWithIsAccessibleProperty(): string {
     return xml;
 }
 
+
+/**
+ * Opens a .docx file, removes all custom properties, and saves the file back to the drive.
+ * 
+ * @param {string} filePath - The path to the .docx file.
+ * @throws {Error} If the file is not a .docx file or if there's an error processing the file.
+ */
+async function deleteCustomProperties(filePath: string): Promise<void> {
+    // Check if the file is a .docx file
+    if (path.extname(filePath).toLowerCase() !== '.docx') {
+        throw new Error('The file is not a .docx file');
+    }
+
+    try {
+        // Read the .docx file
+        const data = await fs.promises.readFile(filePath);
+        const zip = await JSZip.loadAsync(data);
+
+        // Remove the custom.xml file if it exists
+        if (zip.file('docProps/custom.xml')) {
+            zip.remove('docProps/custom.xml');
+        }
+
+        // Generate the new .docx file content
+        const newContent = await zip.generateAsync({ type: 'nodebuffer' });
+
+        // Write the new content back to the file
+        await fs.promises.writeFile(filePath, newContent);
+
+        console.log('Custom properties have been deleted from the file.');
+    } catch (err) {
+        console.error('Error processing .docx file:', err);
+        throw err;
+    }
+}
+
+/**
+ * Opens a Word document, adds a custom property 'isAccessible' set to false while preserving existing properties,
+ * and saves the document.
+ * 
+ * @param {string} filePath - The path to the .docx file.
+ * @throws {Error} If the file is not a .docx file or if there's an error processing the file.
+ */
+async function addIsAccessiblePropertyToDocument(filePath: string): Promise<void> {
+    // Check if the file is a .docx file
+    if (path.extname(filePath).toLowerCase() !== '.docx') {
+        throw new Error('The file is not a .docx file');
+    }
+
+    try {
+        // Read the .docx file
+        const data = await fs.promises.readFile(filePath);
+        const zip = await JSZip.loadAsync(data);
+
+        // Check if custom properties already exist
+        const customPropsFile = zip.file('docProps/custom.xml');
+        let existingProperties: any = {};
+        if (customPropsFile) {
+            const content = await customPropsFile.async('string');
+            existingProperties = await parseStringPromise(content, { explicitArray: false });
+        }
+
+        // Prepare the new custom properties
+        let newProperties: any;
+        if (Object.keys(existingProperties).length === 0) {
+            // If no existing properties, create new XML
+            newProperties = await parseStringPromise(createCustomPropertyCollectionWithIsAccessibleProperty());
+        } else {
+            // If properties exist, add or update the isAccessible property
+            newProperties = existingProperties;
+            if (!Array.isArray(newProperties.Properties.property)) {
+                newProperties.Properties.property = [newProperties.Properties.property];
+            }
+            const isAccessibleProp = newProperties.Properties.property.find((p: any) => p.$.name === 'isAccessible');
+            if (isAccessibleProp) {
+                isAccessibleProp['vt:bool'] = '0'; // Update existing property
+            } else {
+                newProperties.Properties.property.push({
+                    $: { fmtid: "{D5CDD505-2E9C-101B-9397-08002B2CF9AE}", pid: (newProperties.Properties.property.length + 2).toString(), name: "isAccessible" },
+                    'vt:bool': '0'
+                });
+            }
+        }
+
+        // Convert the properties back to XML
+        const builder = new Builder();
+        const xmlString = builder.buildObject(newProperties);
+
+        // Add or replace the custom.xml file in the .docx
+        zip.file('docProps/custom.xml', xmlString);
+
+        // Generate the new .docx file content
+        const newContent = await zip.generateAsync({ type: 'nodebuffer' });
+
+        // Write the new content back to the file
+        await fs.promises.writeFile(filePath, newContent);
+
+        console.log('isAccessible property has been added or updated in the document.');
+    } catch (err) {
+        console.error('Error processing .docx file:', err);
+        throw err;
+    }
+}
+
+
 /**
  * Runs a series of tests to demonstrate the functionality of the XML parsing functions.
  */
@@ -238,6 +344,14 @@ async function runTests() {
         const newPropertyCollection = createCustomPropertyCollectionWithIsAccessibleProperty();
         console.log('New Custom Property Collection:');
         console.log(newPropertyCollection);
+
+        // Test 10: test deleteCustomProperties - see that I can remove all custom properties
+        console.log('\nTest 10: test deleteCustomProperties - see that I can remove all custom properties');
+        await deleteCustomProperties(filePath);
+
+        // Test 11: test addIsAccessiblePropertyToDocument - see that I can add the isAccessible property
+        console.log('\nTest 11: test addIsAccessiblePropertyToDocument - see that I can add the isAccessible property');
+        await addIsAccessiblePropertyToDocument(filePath);
 
     } catch (err) {
         console.error('Error in runTests:', (err as Error).message);
