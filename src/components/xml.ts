@@ -3,7 +3,8 @@
  * 
  * This module provides functionality to parse custom properties from Word documents (.docx files)
  * and XML strings. It includes functions to extract custom properties, check for their existence,
- * and specifically verify the 'isAccessible' property.
+ * and specifically verify the 'isAccessible' property. It also allows creation of a new custom
+ * property collection with an 'isAccessible' property.
  * 
  * @module WordDocumentCustomPropertyParser
  */
@@ -139,6 +140,23 @@ async function getWordDocumentCustomProperties(filePath: string): Promise<Custom
     }
 }
 
+/* Creates a new collection of custom properties with one boolean property called isAccessible set to false.
+ * Returns a properly formatted XML string representing the custom properties for a Word document.
+ * 
+ * @returns { string } An XML string representing a collection of custom properties with isAccessible set to false.
+ */
+function createCustomPropertyCollectionWithIsAccessibleProperty(): string {
+    const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/custom-properties" 
+            xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">
+    <property fmtid="{D5CDD505-2E9C-101B-9397-08002B2CF9AE}" pid="2" name="isAccessible">
+        <vt:bool>0</vt:bool>
+    </property>
+</Properties>`;
+
+    return xml;
+}
+
 /**
  * Runs a series of tests to demonstrate the functionality of the XML parsing functions.
  */
@@ -214,6 +232,12 @@ async function runTests() {
         } catch (error) {
             console.error('Expected error:', (error as Error).message);
         }
+
+        // Test 9: Create a new custom property collection with isAccessible property
+        console.log('\nTest 9: Creating a new custom property collection with isAccessible property');
+        const newPropertyCollection = createCustomPropertyCollectionWithIsAccessibleProperty();
+        console.log('New Custom Property Collection:');
+        console.log(newPropertyCollection);
 
     } catch (err) {
         console.error('Error in runTests:', (err as Error).message);
