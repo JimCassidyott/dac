@@ -1,5 +1,5 @@
 import { app, BrowserWindow, ipcMain, IpcMainInvokeEvent, Menu, MenuItem, Notification } from "electron";
-import * as path from "path";
+import * as pathModule from "path";
 import { SystemAdapter } from './components/systemAdaptor';
 import { IFolderContents } from "./Interfaces/iFolderContents";
 import { IFile } from "./Interfaces/iFile";
@@ -12,13 +12,13 @@ function createWindow() {
   const mainWindow = new BrowserWindow({
     height: 600,
     webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
+      preload: pathModule.join(__dirname, "preload.js"),
     },
     width: 800,
   });
 
   // and load the index.html of the app.
-  mainWindow.loadFile(path.join(__dirname, "../index.html"));
+  mainWindow.loadFile(pathModule.join(__dirname, "../index.html"));
 
   ipcMain.on('show-context-menu', (event, arg) => {
     if (arg.type == "file" || arg.type == "folder"){
@@ -237,10 +237,11 @@ async function testFolder(path: string, progressBar: ProgressBar) {
   for (let i = 0; i < documents.length; i++) {
     progressBar.detail = `Testing file ${i+1} out of ${documents.length}...`;
     updateProgressBarValue(progressBar, ((1/documents.length) * 100));
+    let normalizedPath = pathModule.normalize(documents[i]).replace(/\\/g, '/');
     try{
       let accessibilityStatus = await testFile(documents[i]);
       testResults.results.push({
-        path: documents[i],
+        path: normalizedPath,
         success: true,  // The test ran successfully
         passed: accessibilityStatus  // Assuming testFile returns true if passed
       });
@@ -249,7 +250,7 @@ async function testFolder(path: string, progressBar: ProgressBar) {
     catch(error){
       console.log(error);
       testResults.results.push({
-        path: documents[i],
+        path: normalizedPath,
         success: false,  // The test failed to run
         passed: false  // Indicate that the test result is unknown due to failure
       });
