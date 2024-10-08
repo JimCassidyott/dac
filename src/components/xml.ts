@@ -39,7 +39,7 @@ function isValidDOCXFile(filePath: string): boolean {
 }
 /**
  * Parses an XML string into an array of CustomProperty objects.
- * 
+ *   
  * @param {string} xml - The XML string to parse.
  * @returns {Promise<CustomProperty[]>} A promise that resolves to an array of CustomProperty objects.
  * @throws {Error} If there's an error parsing the XML.
