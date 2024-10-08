@@ -1,9 +1,11 @@
 import * as path from 'path';
 const AdmZip = require('adm-zip'); // Using require here is important. If you use import, it will throw an error.
 import * as xml2js from 'xml2js';
+import { Builder, parseStringPromise } from 'xml2js';
 import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as pa11y from 'pa11y';
+import * as JSZip from 'jszip';
 
 const errorCodesToIgnore = [
     'WCAG2AAA.Principle3.Guideline3_1.3_1_1.H57.3.Lang',
@@ -103,19 +105,64 @@ export async function isWordDOC(filePath: string): Promise<boolean> {
     return true; // Add a return statement here
 }
 
+// /**
+//  * Reads the .docx file and returns the zip object.
+//  *
+//  * @param {string} filePath - The path to the Word document.
+//  * @returns {AdmZip} The zip object representing the .docx file.
+//  */
+// function readDocxFile(filePath: string): typeof AdmZip {
+//     const fileExtension: string = path.extname(filePath).toLowerCase();
+//     if (fileExtension !== '.docx') {
+//         throw new Error('The provided file is not a Word document (.docx)');
+//     }
+//     return new AdmZip(filePath);
+// }
+
 /**
- * Reads the .docx file and returns the zip object.
- *
- * @param {string} filePath - The path to the Word document.
- * @returns {AdmZip} The zip object representing the .docx file.
+ * Reads the contents of a DOCX file and returns a JSZip object.
+ * 
+ * @param filePath - The path to the DOCX file.
+ * @returns A promise that resolves to a JSZip object representing the contents of the DOCX file.
+ * @throws Will throw an error if the file does not exist, if the file is not a valid DOCX file, or if there is an error reading the file.
+ * 
+ * @note This function assumes that the file exists and that it is a valid DOCX file.
  */
-function readDocxFile(filePath: string): typeof AdmZip {
-    const fileExtension: string = path.extname(filePath).toLowerCase();
-    if (fileExtension !== '.docx') {
-        throw new Error('The provided file is not a Word document (.docx)');
+async function readDocxFile(filePath: string): Promise<JSZip> {
+    // Check if the file exists
+    if (!fs.existsSync(filePath)) {
+        throw new Error('The file does not exist');
     }
-    return new AdmZip(filePath);
+
+    // Check if the file is a valid DOCX file
+    if (!isValidDOCXFile(filePath)) {
+        throw new Error('The file is not a valid DOCX file');
+    }
+
+    try {
+        // Read the contents of the DOCX file
+        const data = await fs.promises.readFile(filePath);
+        // Load the contents into a JSZip object
+        const zip = await JSZip.loadAsync(data);
+        return zip;
+    } catch (err) {
+        throw new Error('Error reading the DOCX file: ' + err.message);
+    }
 }
+
+/**
+ * Checks if the given file path is a .docx file.
+ * 
+ * @param {string} filePath - The path to the file to check.
+ * @throws {Error} If the file is not a .docx file. (may become a more robust check later
+ *                - including mime file type check)
+ * @returns {boolean} True if the file is a .docx file, false otherwise.    
+ * 
+ */
+function isValidDOCXFile(filePath: string): boolean {
+    return path.extname(filePath).toLowerCase() === '.docx';
+}
+
 
 /**
  * Gets or creates the custom.xml content from the zip object.
@@ -131,26 +178,26 @@ async function getOrCreateCustomXmlContent(zip: typeof AdmZip): Promise<string> 
     return customXml.getData().toString('utf8'); //FIXME: this line throws error "ADM-ZIP: No descriptor present" with some .docx files
 }
 
-/**
- * Updates or creates the isAccessible property in the custom properties XML.
- *
- * @param {any} properties - The parsed custom properties XML.
- * @param {boolean} isAccessible - The value to set for the isAccessible property.
- */
-function updateIsAccessibleProperty(properties: any, isAccessible: boolean): void {
-    let isAccessibleProperty = properties['property']?.find((prop: any) => prop.$.name === 'isAccessible');
-    if (isAccessibleProperty) {
-        isAccessibleProperty['vt:bool'] = isAccessible.toString();
-    } else {
-        if (!properties['property']) {
-            properties['property'] = [];
-        }
-        properties['property'].push({
-            $: { name: 'isAccessible', fmtid: '{D5CDD505-2E9C-101B-9397-08002B2CF9AE}', pid: properties['property'].length + 2 },
-            'vt:bool': isAccessible.toString()
-        });
-    }
-}
+// /**
+//  * Updates or creates the isAccessible property in the custom properties XML.
+//  *
+//  * @param {any} properties - The parsed custom properties XML.
+//  * @param {boolean} isAccessible - The value to set for the isAccessible property.
+//  */
+// function updateIsAccessibleProperty(properties: any, isAccessible: boolean): void {
+//     let isAccessibleProperty = properties['property']?.find((prop: any) => prop.$.name === 'isAccessible');
+//     if (isAccessibleProperty) {
+//         isAccessibleProperty['vt:bool'] = isAccessible.toString();
+//     } else {
+//         if (!properties['property']) {
+//             properties['property'] = [];
+//         }
+//         properties['property'].push({
+//             $: { name: 'isAccessible', fmtid: '{D5CDD505-2E9C-101B-9397-08002B2CF9AE}', pid: properties['property'].length + 2 },
+//             'vt:bool': isAccessible.toString()
+//         });
+//     }
+// }
 
 /**
  * Writes the updated custom.xml content back to the zip object and saves the .docx file.
@@ -165,6 +212,91 @@ function saveUpdatedDocxFile(zip: typeof AdmZip, filePath: string, updatedXmlCon
 }
 
 /**
+ * Updates the 'isAccessible' custom property in a Word document (.docx file)
+ * 
+ * @param {string} filePath - The path to the .docx file.
+ * @returns {Promise<void>} A Promise that resolves when the update is complete.
+ * @throws {Error} If the file is not a .docx file or if there's an error during the process.
+ */
+export async function changeIsAccessibleProperty(filePath: string, isAccessible: boolean): Promise<void> {
+
+    try {
+        const zip = await readDocxFile(filePath);
+        const customPropsFile = zip.file('docProps/custom.xml');
+
+        if (customPropsFile) {
+            const content = await customPropsFile.async('string');
+            const updatedContent = await updateIsAccessibleProperty(content, isAccessible);
+            zip.file('docProps/custom.xml', updatedContent);
+            const newContent = await zip.generateAsync({ type: 'nodebuffer' });
+            console.log("newContent", updatedContent)
+            await fs.promises.writeFile(filePath, newContent);
+            console.log('isAccessible property has been updated in the document.');
+        } else {
+            console.log('No custom properties found in the document.');
+        }
+    } catch (err) {
+        console.error('Error processing .docx file:', err);
+        throw err;
+    }
+}
+
+/**
+ * Updates the 'isAccessible' property in the given XML string based on the provided boolean value.
+ * 
+ * @param xmlString - The XML string representing the custom properties collection from a Word document.
+ * @param isAccessible - A boolean flag indicating the value for the 'isAccessible' property.
+ * @returns A promise that resolves to the updated XML string with the 'isAccessible' property set.
+ * @throws Will throw an error if the XML parsing or building fails.
+ */
+async function updateIsAccessibleProperty(xmlString: string, isAccessible: boolean): Promise<string> {
+    try {
+        // Parse the XML string into a JavaScript object
+        const result = await parseStringPromise(xmlString);
+
+        // Define the isAccessible property value
+        const isAccessibleValue = isAccessible ? '1' : '0';
+
+        // Find the isAccessible property and update its value
+        if (result.Properties && result.Properties.property) {
+            const properties = result.Properties.property;
+            let isAccessibleProp = properties.find((prop: any) => prop.$.name === 'isAccessible');
+
+            if (isAccessibleProp) {
+                // Update existing property
+                isAccessibleProp['vt:bool'] = isAccessibleValue;
+            } else {
+                // Add new property if it doesn't exist
+                properties.push({
+                    $: { fmtid: "{D5CDD505-2E9C-101B-9397-08002B2CF9AE}", pid: (properties.length + 2).toString(), name: "isAccessible" },
+                    'vt:bool': isAccessibleValue
+                });
+            }
+        } else {
+            // Add Properties and property if they don't exist
+            result.Properties = {
+                property: [{
+                    $: { fmtid: "{D5CDD505-2E9C-101B-9397-08002B2CF9AE}", pid: "2", name: "isAccessible" },
+                    'vt:bool': isAccessibleValue
+                }]
+            };
+        }
+
+        // Convert the JavaScript object back to an XML string
+        const builder = new Builder();
+        const updatedXmlString = builder.buildObject(result);
+
+        // Print the updated XML string
+        console.log(updatedXmlString);
+
+        return updatedXmlString;
+    } catch (err) {
+        console.error('Error processing XML:', err);
+        throw err;
+    }
+}
+
+/**
  * Updates the isAccessible property in the custom properties XML of a Word document.
  *
  * @param {string} filePath - The path to the Word document.
@@ -172,23 +304,23 @@ function saveUpdatedDocxFile(zip: typeof AdmZip, filePath: string, updatedXmlCon
  * @returns {Promise<void>} A Promise that resolves when the update is complete.
  * @throws {Error} If there is an error reading or parsing the custom properties XML.
  */
-export async function changeIsAccessibleProperty(filePath: string, isAccessible: boolean): Promise<void> {
-    try {
-        const zip = readDocxFile(filePath);
-        const customXmlContent = await getOrCreateCustomXmlContent(zip);
+// export async function changeIsAccessibleProperty_old(filePath: string, isAccessible: boolean): Promise<void> {
+//     try {
+//         const zip = readDocxFile(filePath);
+//         const customXmlContent = await getOrCreateCustomXmlContent(zip);
 
-        const parser = new xml2js.Parser();
-        const builder = new xml2js.Builder();
-        const result = await parser.parseStringPromise(customXmlContent);
+//         const parser = new xml2js.Parser();
+//         const builder = new xml2js.Builder();
+//         const result = await parser.parseStringPromise(customXmlContent);
 
-        updateIsAccessibleProperty(result['Properties'], isAccessible);
+//         updateIsAccessibleProperty(result['Properties'], isAccessible);
 
-        const updatedXmlContent = builder.buildObject(result);
-        saveUpdatedDocxFile(zip, filePath, updatedXmlContent);
-    } catch (error) {
-        throw new Error(`Error updating custom properties XML: ${error.message}`);
-    }
-}
+//         const updatedXmlContent = builder.buildObject(result);
+//         saveUpdatedDocxFile(zip, filePath, updatedXmlContent);
+//     } catch (error) {
+//         throw new Error(`Error updating custom properties XML: ${error.message}`);
+//     }
+// }
 
 /**
  * Runs a Pandoc command synchronously. Throws an exception if the command
@@ -254,13 +386,17 @@ export async function testAccessiblity(inputFilePath: string): Promise<boolean> 
 
 const inputFilePath = '..\\..\\demofiles\\accessible\\accessible.docx';
 
-testAccessiblity(inputFilePath).then(isAccessible => {
-    changeIsAccessibleProperty(inputFilePath, isAccessible === true);
-    if (isAccessible) {
-        console.log('The document is accessible.');
-    } else {
-        console.log('The document is not accessible.');
-    }
-}).catch(error => {
-    console.error('An error occurred:', error);
-});
+// testAccessiblity(inputFilePath).then(isAccessible => {
+//     changeIsAccessibleProperty(inputFilePath, isAccessible === true);
+//     if (isAccessible) {
+//         console.log('The document is accessible.');
+//     } else {
+//         console.log('The document is not accessible.');
+//     }
+// }).catch(error => {
+//     console.error('An error occurred:', error);
+// });
+
+// changeIsAccessibleProperty(inputFilePath, false).then(() => {
+//     console.log('isAccessible property has been updated in the document.');
+// })
