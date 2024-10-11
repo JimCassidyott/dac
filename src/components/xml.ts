@@ -336,6 +336,7 @@ async function updateIsAccessibleProperty(xmlString: string, isAccessible: boole
     try {
         // Parse the XML string into a JavaScript object
         const result = await parseStringPromise(xmlString);
+        console.log('Parsed XML string:', result);
 
         // Define the isAccessible property value
         const isAccessibleValue = isAccessible ? '1' : '0';
