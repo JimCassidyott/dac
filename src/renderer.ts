@@ -84,9 +84,16 @@ async function toggleFolder(icon: any) {
 }
 
 async function ShowFolderContents() {
-  let content = await window.electronAPI.getFolderContent("./");  
-  document.getElementById('file-explorer').innerHTML = generateFileTree(content.files, content.name);
-  document.getElementById('file-explorer').innerHTML += generateFolderTree(content.folders, content.name);
+  let content = await window.electronAPI.getFolderContent("/");  
+  let html = 
+    `
+    <ul>
+      <li><i class="fas fa-folder fa-folder-open text-warning folder" data-curr-type="folder" data-curr-path="/" onclick="toggleFolder(this)"></i> /
+      <ul class="nested active">`;
+  html += generateFileTree(content.files, content.name);
+  html += generateFolderTree(content.folders, content.name);
+  html += `</ul></li></ul>`;
+  document.getElementById('file-explorer').innerHTML = html;
 }
 
 window.addEventListener('contextmenu', (event: MouseEvent) => {
@@ -95,7 +102,6 @@ window.addEventListener('contextmenu', (event: MouseEvent) => {
   const clickedElement = document.elementFromPoint(event.clientX, event.clientY);
   
   if (clickedElement && clickedElement instanceof HTMLElement) {
-    // console.log('Right-clicked element:', clickedElement);
     window.electron.ipcRenderer.send('show-context-menu', { 
       type: clickedElement.dataset.currType,
       path: clickedElement.dataset.currPath
@@ -121,9 +127,22 @@ window.electronAPI.receive('context-menu-action', (data) => {
   }
 });
 
+window.electronAPI.receive('top-menu-action', (data) => {  
+  if (data.action == "open-folder") {
+    let html = 
+    `
+    <ul>
+      <li><i class="fas fa-folder fa-folder-open text-warning folder" data-curr-type="folder" data-curr-path="${data.content.name}" onclick="toggleFolder(this)"></i> ${data.content.name.split('/').pop()  || data.content.name}
+      <ul class="nested active">`;
+    html += generateFileTree(data.content.files, data.content.name);
+    html += generateFolderTree(data.content.folders, data.content.name);
+    html += `</ul></li></ul>`;
+    document.getElementById('file-explorer').innerHTML = html;
+  }
+});
+
 function receiveChangeAccessibilityStatus(data: any) {
-  console.log(data);
-  
+
   if (!data.path || data.path == "") { 
     new window.Notification("Error", {body: "Something went wrong while updating accessibility status"});
     return; 

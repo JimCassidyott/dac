@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, IpcMainInvokeEvent, Menu, MenuItem, Notification } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, IpcMainInvokeEvent, Menu, MenuItem, MenuItemConstructorOptions, Notification } from "electron";
 import * as pathModule from "path";
 import { SystemAdapter } from './components/systemAdaptor';
 import { IFolderContents } from "./Interfaces/iFolderContents";
@@ -116,6 +116,66 @@ function createWindow() {
     }
 
   });
+
+  const topMenuTemplate: MenuItemConstructorOptions[] = [
+    {
+      label: 'File',
+      submenu: [
+        {
+          label: 'Open Folder',
+          accelerator: 'CmdOrCtrl+O',
+          click: async () => {
+            // Show the open folder dialog
+            const { canceled, filePaths } = await dialog.showOpenDialog({
+              properties: ['openDirectory']
+            });
+  
+            // If the user did not cancel and selected a folder
+            if (!canceled && filePaths.length > 0) {
+              const selectedFolderPath = filePaths[0];
+              let folderContent = await handleGetContent(null, selectedFolderPath);
+              mainWindow.webContents.send("top-menu-action", {
+                action: 'open-folder',
+                content: folderContent
+              });
+              
+            }
+          }
+        },
+        { type: 'separator' },
+        {
+          label: 'Quit',
+          accelerator: 'CmdOrCtrl+Q',
+          click: () => {
+            app.quit();
+          }
+        }
+      ]
+    },
+    {
+      label: 'View',
+      submenu: [
+        {
+          label: 'Reload Page',
+          accelerator: 'CmdOrCtrl+R',
+          click: () => {
+            if (mainWindow) mainWindow.reload();
+          }
+        },
+        {
+          label: 'Toggle Developer Tools',
+          accelerator: 'CmdOrCtrl+Shift+I',
+          click: () => {
+            if (mainWindow) mainWindow.webContents.toggleDevTools();
+          }
+        }
+      ]
+    }
+  ];
+
+  const topMenu = Menu.buildFromTemplate(topMenuTemplate);
+  Menu.setApplicationMenu(topMenu);
+
   // Open the DevTools.
   mainWindow.webContents.openDevTools();
 }
@@ -128,7 +188,6 @@ function createWindow() {
 app.whenReady().then(() => {
   ipcMain.handle('fs:getFolderContent', handleGetContent);
   createWindow();
-
   app.on("activate", function () {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
