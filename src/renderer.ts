@@ -281,7 +281,7 @@ function recieveFolderTestResults(data: any) {
         <th>Document accessibility status:</th>
       </tr>`;
     for (let doc = 0; doc < data.results.length; doc++) {
-      let iconData = {path: `./${data.results[doc].path}`, accStatus: `${data.results[doc].passed}`}; 
+      let iconData = {path: `${data.results[doc].path}`, accStatus: `${data.results[doc].passed}`}; 
       receiveChangeAccessibilityStatus(iconData);
       HTMLReport += `
         <tr>

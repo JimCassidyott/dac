@@ -299,12 +299,12 @@ export async function changeIsAccessibleProperty(filePath: string, isAccessible:
         // } else {
         //     content = createCustomPropertyCollectionWithIsAccessibleProperty();
         // }
-        console.log("content", content, content.length)
+        // console.log("content", content, content.length)
         const updatedContent = await updateIsAccessibleProperty(content, isAccessible);
 
         zip.file('docProps/custom.xml', updatedContent);
         const newContent = await zip.generateAsync({ type: 'nodebuffer' });
-        console.log("newContent", updatedContent)
+        // console.log("newContent", updatedContent)
         await fs.promises.writeFile(filePath, newContent);
 
     } catch (err) {

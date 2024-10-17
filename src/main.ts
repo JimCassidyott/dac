@@ -227,10 +227,11 @@ async function markFilesAccessibility(contents: IFile[], path: string): Promise<
 
 async function handleGetContent (event: IpcMainInvokeEvent, path: string) {  
   try {
-    let content  = await systemAdaptor.getFolderContents(path);
+    let normalizedPath = pathModule.normalize(path).replace(/\\/g, '/');
+    let content  = await systemAdaptor.getFolderContents(normalizedPath);    
     let filteredContent: IFolderContents = content[0];
     filteredContent.files = filterDocxFiles(filteredContent.files);
-    filteredContent.files = await markFilesAccessibility(filteredContent.files, path);
+    filteredContent.files = await markFilesAccessibility(filteredContent.files, normalizedPath);
 
     return filteredContent;
 
