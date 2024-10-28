@@ -88,7 +88,7 @@ async function ShowFolderContents() {
   let html = 
     `
     <ul>
-      <li><i class="fas fa-folder fa-folder-open text-warning folder" data-curr-type="folder" data-curr-path="/" onclick="toggleFolder(this)"></i> /
+      <li><i class="fas text-warning folder fa-folder-open" data-curr-type="folder" data-curr-path="/" onclick="toggleFolder(this)"></i> /
       <ul class="nested active">`;
   html += generateFileTree(content.files, content.name);
   html += generateFolderTree(content.folders, content.name);
@@ -132,7 +132,7 @@ window.electronAPI.receive('top-menu-action', (data) => {
     let html = 
     `
     <ul>
-      <li><i class="fas fa-folder fa-folder-open text-warning folder" data-curr-type="folder" data-curr-path="${data.content.name}" onclick="toggleFolder(this)"></i> ${data.content.name.split('/').pop()  || data.content.name}
+      <li><i class="fas text-warning folder fa-folder-open" data-curr-type="folder" data-curr-path="${data.content.name}" onclick="toggleFolder(this)"></i> ${data.content.name.split('/').pop()  || data.content.name}
       <ul class="nested active">`;
     html += generateFileTree(data.content.files, data.content.name);
     html += generateFolderTree(data.content.folders, data.content.name);
