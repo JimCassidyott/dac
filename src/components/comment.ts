@@ -3,6 +3,7 @@ import * as path from 'path';
 const AdmZip = require('adm-zip'); // Using require here is important. If you use import, it will throw an error.
 import * as xml2js from 'xml2js';
 
+const filePath = 'C:\\Users\\jimca\\Documents\\code\\csc\\dac\\demofiles\\accessible\\accessible.docx';
 /**
  * Extracts comments from a .docx file.
  *
@@ -43,7 +44,6 @@ export async function extractCommentsFromDocx(filePath: string): Promise<string[
 
 // Example usage
 async function exampleUsage() {
-    const filePath = 'jim.docx';
 
     try {
         const comments = await extractCommentsFromDocx(filePath);
