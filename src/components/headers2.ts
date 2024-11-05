@@ -22,7 +22,6 @@ class Heading {
         this.activeHeading = this;
         this.root = null;
 
-        // If this is level 1, it becomes the root
         if (level === 1) {
             this.root = this;
         }
@@ -34,16 +33,13 @@ class Heading {
         }
     }
 
-    /**
-     * Attempts to add a new heading to the hierarchy
-     */
     addHeading(text: string, level: number): void {
         this.validateLevel(level);
 
-        // If we don't have a root yet, this must be level 1
+        // Handle empty document case
         if (!this.root) {
             if (level !== 1) {
-                throw new HeadingError('First heading must be level 1');
+                throw new HeadingError('First heading in the document must be level 1');
             }
             this.text = text;
             this.level = level;
@@ -52,7 +48,7 @@ class Heading {
             return;
         }
 
-        // Cannot add another level 1 if we already have one
+        // Prevent multiple level 1 headings
         if (level === 1) {
             throw new HeadingError('Cannot add another level 1 heading');
         }
@@ -61,51 +57,42 @@ class Heading {
         const newHeading = new Heading(text, level);
         newHeading.root = this.root;
 
-        // Try to add the heading starting from the active heading
+        // Try to add the heading starting from active heading and moving up
         if (!this.tryAddHeadingToHierarchy(newHeading)) {
             throw new HeadingError(
-                `Cannot add heading level ${level} at current position in hierarchy`
+                `Cannot add heading level ${level} at any valid position in hierarchy`
             );
         }
     }
 
-    /**
-     * Attempts to add a heading to the hierarchy, starting from the active heading
-     * and working up the tree if necessary
-     */
     private tryAddHeadingToHierarchy(newHeading: Heading): boolean {
-        let current: Heading | null = this.activeHeading;
+        let currentParent: Heading | null = this.activeHeading;
 
-        while (current) {
-            if (this.canAddHeadingToParent(current, newHeading)) {
-                this.addHeadingToParent(current, newHeading);
+        while (currentParent) {
+            // Try to add as child of current level
+            if (newHeading.level === currentParent.level + 1) {
+                this.addHeadingToParent(currentParent, newHeading);
                 this.activeHeading = newHeading;
                 return true;
             }
-            current = current.parent;
+            // Try to add as sibling if we're at the same level
+            else if (newHeading.level === currentParent.level && currentParent.parent) {
+                this.addHeadingToParent(currentParent.parent, newHeading);
+                this.activeHeading = newHeading;
+                return true;
+            }
+            // Move up to parent and try again
+            currentParent = currentParent.parent;
         }
 
         return false;
     }
 
-    /**
-     * Checks if a heading can be added to a potential parent
-     */
-    private canAddHeadingToParent(parent: Heading, child: Heading): boolean {
-        return child.level === parent.level + 1;
-    }
-
-    /**
-     * Adds a heading to a parent heading
-     */
     private addHeadingToParent(parent: Heading, child: Heading): void {
         child.parent = parent;
         parent.children.push(child);
     }
 
-    /**
-     * Gets the active heading
-     */
     getActiveHeading(): { text: string; level: number } {
         return {
             text: this.activeHeading.text,
@@ -113,9 +100,6 @@ class Heading {
         };
     }
 
-    /**
-     * Returns a string representation of the heading hierarchy
-     */
     toString(indent: string = ''): string {
         let result = `${indent}Level ${this.level}: ${this.text}\n`;
         for (const child of this.children) {
@@ -124,9 +108,6 @@ class Heading {
         return result;
     }
 
-    /**
-     * Gets the current heading structure as a nested object
-     */
     toStructure(): any {
         return {
             text: this.text,
@@ -136,54 +117,102 @@ class Heading {
     }
 }
 
-// Example usage and testing
 function testHeadingHierarchy(): void {
     try {
-        // Create the heading manager with initial level 1 heading
-        const headingManager = new Heading("Document Title", 1);
-        console.log("Initial structure:");
-        console.log(headingManager.toString());
+        console.log("Test 1: Basic Hierarchy Construction");
+        const doc = new Heading("Document Title", 1);
+        console.log("\nCreated level 1 heading:");
+        console.log(doc.toString());
 
-        // Add some valid headings
-        headingManager.addHeading("Section 1", 2);
-        headingManager.addHeading("Subsection 1.1", 3);
-        headingManager.addHeading("Subsection 1.2", 3);
-        headingManager.addHeading("Section 2", 2);
-        headingManager.addHeading("Subsection 2.1", 3);
-        headingManager.addHeading("Section 3", 2);
-        headingManager.addHeading("Section 4", 2);
+        console.log("\nTest 2: Adding Valid Child Headings");
+        doc.addHeading("Section 1", 2);
+        doc.addHeading("Subsection 1.1", 3);
+        doc.addHeading("Subsection 1.2", 3);
+        console.log("\nAfter adding nested sections:");
+        console.log(doc.toString());
+        console.log("Active heading:", doc.getActiveHeading());
 
-        console.log("\nAfter adding valid headings:");
-        console.log(headingManager.toString());
+        console.log("\nTest 3: Adding Sibling at Current Level");
+        doc.addHeading("Subsection 1.3", 3);
+        console.log("\nAfter adding sibling section:");
+        console.log(doc.toString());
+        console.log("Active heading:", doc.getActiveHeading());
 
-        // Try to add an invalid heading (should throw error)
+        console.log("\nTest 4: Moving Up Tree and Adding");
+        doc.addHeading("Section 2", 2);
+        console.log("\nAfter adding new level 2 section:");
+        console.log(doc.toString());
+        console.log("Active heading:", doc.getActiveHeading());
+
+        console.log("\nTest 5: Deep Nesting");
+        doc.addHeading("Subsection 2.1", 3);
+        doc.addHeading("Subsection 2.1.1", 4);
+        doc.addHeading("Subsection 2.1.2", 4);
+        console.log("\nAfter deep nesting:");
+        console.log(doc.toString());
+        console.log("Active heading:", doc.getActiveHeading());
+
+        console.log("\nTest 6: Error Cases");
+
+        console.log("\nTrying to add another level 1 heading:");
         try {
-            headingManager.addHeading("Invalid Level 4", 4);
+            doc.addHeading("Another Title", 1);
         } catch (e) {
             if (e instanceof HeadingError) {
-                console.log("\nExpected error when adding invalid level:", e.message);
+                console.log("Expected error:", e.message);
             }
         }
 
-        // Try to add another level 1 (should throw error)
+        console.log("\nTrying to add invalid level (too deep):");
         try {
-            headingManager.addHeading("Another Title", 1);
+            doc.addHeading("Too Deep", 6);
         } catch (e) {
             if (e instanceof HeadingError) {
-                console.log("\nExpected error when adding second level 1:", e.message);
+                console.log("Expected error:", e.message);
             }
         }
 
-        console.log("\nActive heading:", headingManager.getActiveHeading());
+        console.log("\nTest 7: Complex Tree Navigation");
+        // Current active heading is at level 4
+        doc.addHeading("Section 3", 2);  // Should work by moving up tree
+        doc.addHeading("Subsection 3.1", 3);
+        doc.addHeading("Section 4", 2);
+        doc.addHeading("Subsection 4.1", 3);
+        doc.addHeading("Subsection 4.1.1", 4);
+        doc.addHeading("Section 5", 2);
+        doc.addHeading("Subsection 5.1", 3);
+        doc.addHeading("Subsection 5.1.1", 4);
+        doc.addHeading("Subsection 5.1.1.1", 5);
+        doc.addHeading("Subsection 5.2", 3);
+        doc.addHeading("Subsection 6", 2);
+        doc.addHeading("Subsection 6.1", 3);
+        doc.addHeading("Subsection 6.1.1", 4);
+        console.log("\nAfter complex navigation:");
+        console.log(doc.toString());
+        console.log("Active heading:", doc.getActiveHeading());
+
+        console.log("\nTest 8: Invalid Level Jump");
+        try {
+            // Try to add level 4 when active heading is level 2
+            doc.addHeading("Invalid Jump", 4);
+        } catch (e) {
+            if (e instanceof HeadingError) {
+                console.log("Expected error:", e.message);
+            }
+        }
+
+        // Display final structure
+        console.log("\nFinal Document Structure:");
+        console.log(JSON.stringify(doc.toStructure(), null, 2));
 
     } catch (e) {
         if (e instanceof HeadingError) {
-            console.log("Heading Error:", e.message);
+            console.log("Unexpected Heading Error:", e.message);
         } else {
             console.log("Unexpected Error:", e);
         }
     }
 }
 
-// Run the test
+// Run all tests
 testHeadingHierarchy();
