@@ -61,6 +61,7 @@
     "electron-progressbar": "^2.2.1",
     "electron-squirrel-startup": "^1.0.1",
     "fast-xml-parser": "^4.5.0",
+    "html-entities": "^2.5.2",
     "htmx.org": "^1.9.12",
     "jszip": "^3.10.1",
     "mammoth": "^1.8.0",

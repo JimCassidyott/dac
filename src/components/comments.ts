@@ -86,11 +86,11 @@ async function addComment(docxFile: string, targetText: string, commentText: str
 
     // Generate the new DOCX file
     const newDocxData = await zip.generateAsync({ type: 'nodebuffer' });
-    await fs.promises.writeFile(docxFile, newDocxData);
+    await fs.writeFile(docxFile, newDocxData);
 }
 
 async function getComments(docxFile: string): Promise<Array<{ id: string, text: string }>> {
-    const data = await fs.promises.readFile(docxFile);
+    const data = await fs.readFile(docxFile);
     const zip = await JSZip.loadAsync(data);
 
     const commentsXml = await zip.file('word/comments.xml')?.async('text');
@@ -130,7 +130,7 @@ async function main() {
         }
 
         // Log the content of document.xml for debugging
-        const zip = await JSZip.loadAsync(await fs.promises.readFile(filePath));
+        const zip = await JSZip.loadAsync(await fs.readFile(filePath));
         const documentXml = await zip.file('word/document.xml')?.async('text');
         console.log('Content of document.xml:');
         console.log(documentXml);
