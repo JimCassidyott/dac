@@ -1,1 +1,0 @@
-Write some code to start at a given directory and produce I think I wrote this code

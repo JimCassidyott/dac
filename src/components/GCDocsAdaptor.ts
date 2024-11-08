@@ -24,8 +24,8 @@ import { IFolderContents } from '../Interfaces/iFolderContents';
      */
     public async authenticate(): Promise<void> {
         try{
-            const username = process.env.GCDOCS_USERNAME;//'systemintegration.DAC';
-            const password = process.env.GCDOCS_PASSWORD;//'DAC!2Accesssibility';
+            const username = process.env.GCDOCS_USERNAME;
+            const password = process.env.GCDOCS_PASSWORD;
             const GCdocsAPIURL = 'https://dev.gcdocs.gc.ca/csc-scc/llisapi.dll/api/v1/auth';
             const postData = {username: username, password: password};
             console.log(postData);
