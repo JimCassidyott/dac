@@ -10,12 +10,11 @@
 function generateFileTree(entries: any, path: string) {
   let html = '<ul>';
   for (const entry of entries) {
-    let currPath = path == "./" ? path + entry.name : path + "/" + entry.name;
     if (entry.isAccessible == true) {
-      html += `<li> <i class="fas fa-check-circle text-success fa-xs"></i> <i class="fas fa-file text-primary" data-curr-type="file" data-curr-path="${currPath}" onclick="showAccStatus(this)"></i> ${entry.name}</li>`;
+      html += `<li> <i class="fas fa-check-circle text-success fa-xs"></i> <i class="fas fa-file text-primary" data-curr-type="file" data-curr-path="${entry.path}" onclick="showAccStatus(this)"></i> ${entry.name}</li>`;
     }
     else {
-      html += `<li> <i class="fas fa-times-circle text-danger fa-xs"></i> <i class="fas fa-file text-primary" data-curr-type="file" data-curr-path="${currPath}" onclick="showAccStatus(this)"></i> ${entry.name}</li>`;
+      html += `<li> <i class="fas fa-times-circle text-danger fa-xs"></i> <i class="fas fa-file text-primary" data-curr-type="file" data-curr-path="${entry.path}" onclick="showAccStatus(this)"></i> ${entry.name}</li>`;
     }
   }
   html += '</ul>';
@@ -25,10 +24,8 @@ function generateFileTree(entries: any, path: string) {
 
 function generateFolderTree(entries: any, path: string) {
   let html = '<ul>';
-  for (const entry of entries) {
-    let currPath = path == "./" ? path + entry.name : path + "/" + entry.name;
-
-    html += `<li><i class="fas fa-folder text-warning folder" data-curr-type="folder" data-curr-path="${currPath}" onclick="toggleFolder(this)"></i> ${entry.name}`;
+  for (const entry of entries) {    
+    html += `<li><i class="fas fa-folder text-warning folder" data-curr-type="folder" data-curr-path="${entry.path}" onclick="toggleFolder(this)"></i> ${entry.name}`;
     html += `<ul class="nested">`;
     html += `</ul></li>`;
   }

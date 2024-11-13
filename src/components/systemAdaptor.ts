@@ -20,7 +20,8 @@ export class SystemAdapter implements IFileSystem {
                 .map((folder) => { // Create IFile objects with name, path, and fileCount initialized to 0
                     return {
                         name: folder.name,
-                        fileCount: 0
+                        fileCount: 0,
+                        path: `${directoryPath}/${folder.name}`,
                     };
                 });
 
@@ -104,7 +105,7 @@ export class SystemAdapter implements IFileSystem {
                 .map((file) => { // Create IFile objects with name, path, and fileCount initialized to 0
                     return {
                         name: file.name, // Name of the file
-                        path: directoryPath, // Path of the file
+                        path: `${directoryPath}/${file.name}`, // Path of the file
                         size: "0", // Size in bytes or megabytes
                         mimeType: "", // MIME type of the file, optional
                         isAccessible: false, // Accessibility property
