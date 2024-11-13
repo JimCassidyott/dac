@@ -6,6 +6,7 @@ import { IFile } from "./Interfaces/iFile";
 import { changeIsAccessibleProperty, isAccessible, testAccessiblity } from "./components/accessibilityChecker";
 import ProgressBar = require('electron-progressbar');
 import { listDocxFiles } from './directory';
+import { GCDocsAdapter } from './components/GCDocsAdaptor';
 
 function createWindow() {
   // Create the browser window.
@@ -122,7 +123,7 @@ function createWindow() {
       label: 'File',
       submenu: [
         {
-          label: 'Open Folder',
+          label: 'Open System Folder',
           accelerator: 'CmdOrCtrl+O',
           click: async () => {
             // Show the open folder dialog
@@ -132,14 +133,26 @@ function createWindow() {
   
             // If the user did not cancel and selected a folder
             if (!canceled && filePaths.length > 0) {
+              fileSource = 'SYSTEM'; 
               const selectedFolderPath = filePaths[0];
               let folderContent = await handleGetContent(null, selectedFolderPath);
               mainWindow.webContents.send("top-menu-action", {
                 action: 'open-folder',
                 content: folderContent
               });
-              
             }
+          }
+        },
+        {
+          label: 'Connet to GCDocs',
+          accelerator: 'CmdOrCtrl+G',
+          click: async () => {
+            fileSource = 'GCDOCS';
+            let folderContent = await handleGetContent(null, '6345941'); // temp starting point 6345941 
+            mainWindow.webContents.send("top-menu-action", {
+              action: 'open-folder',
+              content: folderContent
+            });
           }
         },
         { type: 'separator' },
@@ -207,8 +220,19 @@ app.on("window-all-closed", () => {
 // In this file you can include the rest of your app"s specific main process
 // code. You can also put them in separate files and require them here.
 
+let fileSource = 'SYSTEM';
 
-const systemAdaptor = new SystemAdapter();
+async function getFileSystemAdapter(){
+  if (fileSource === 'SYSTEM') {
+    return new SystemAdapter();
+  }
+  else if (fileSource === 'GCDOCS') {
+    return new GCDocsAdapter();
+  }
+  else {
+    throw new Error('Invalid file source');
+  }
+}
 
 function filterDocxFiles(contents: IFile[]): IFile[] {
   return contents.filter(file => file.name.toLowerCase().endsWith('.docx'));
@@ -228,7 +252,8 @@ async function markFilesAccessibility(contents: IFile[], path: string): Promise<
 async function handleGetContent (event: IpcMainInvokeEvent, path: string) {  
   try {
     let normalizedPath = pathModule.normalize(path).replace(/\\/g, '/');
-    let content  = await systemAdaptor.getFolderContents(normalizedPath);    
+    let adaptor = await getFileSystemAdapter();
+    let content  = await adaptor.getFolderContents(normalizedPath);
     let filteredContent: IFolderContents = content[0];
     filteredContent.files = filterDocxFiles(filteredContent.files);
     filteredContent.files = await markFilesAccessibility(filteredContent.files, normalizedPath);

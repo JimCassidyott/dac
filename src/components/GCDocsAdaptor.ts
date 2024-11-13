@@ -22,13 +22,12 @@ import { IFolderContents } from '../Interfaces/iFolderContents';
      *
      * @return {Promise<void>}
      */
-    public async authenticate(): Promise<void> {
+    private async authenticate(): Promise<void> {
         try{
             const username = process.env.GCDOCS_USERNAME;
             const password = process.env.GCDOCS_PASSWORD;
             const GCdocsAPIURL = 'https://dev.gcdocs.gc.ca/csc-scc/llisapi.dll/api/v1/auth';
             const postData = {username: username, password: password};
-            console.log(postData);
             const response = await fetch(GCdocsAPIURL, {
                 method: 'POST',
                 headers: {
@@ -74,21 +73,20 @@ import { IFolderContents } from '../Interfaces/iFolderContents';
                 throw new Error(`Failed to fetch folder content ${errorData}`);
             }
             let jsonResponse = await response.json();
-            let fileNames = jsonResponse.data
-                .filter((item: { type: number; }) => item.type == 144) // type 144 is for documents
-                .map((item: { name: string; }) => item.name);
-            console.log(fileNames);
             
-            const fileList: IFile[] = fileNames.map((name: string) => {
-                return {
-                    name: name, // Name of the file
-                    path: directoryPath, // Path of the file
-                    size: "0", // Size in bytes or megabytes
-                    mimeType: "", // MIME type of the file, optional
-                    isAccessible: false, // Accessibility property
-                    customProperties: {} // Custom properties
-                };
-            });
+            const fileList: IFile[] = jsonResponse.data
+                .filter((item: { type: number; }) => item.type == 144)
+                .map((item: { name: string; id: number; mime_type: string; size: number }) => {
+                    return {
+                        name: item.name, // Name of the file
+                        path: item.id, // Path of the file
+                        size: item.size, // Size in bytes or megabytes
+                        mimeType: item.mime_type, // MIME type of the file, optional
+                        isAccessible: false, // Accessibility property
+                        customProperties: {} // Custom properties
+                    };
+                });
+
             return fileList;
         }
         catch(error) {
@@ -115,16 +113,16 @@ import { IFolderContents } from '../Interfaces/iFolderContents';
                 throw new Error(`Failed to fetch folder content ${errorData}`);
             }
             let jsonResponse = await response.json();
-            let folderNames = jsonResponse.data
+
+            let folderList: IFolder[] = jsonResponse.data
                 .filter((item: { type: number; }) => item.type == 0) // type 0 is for folders
-                .map((item: { name: string; }) => item.name);
-            
-            let folderList: IFolder[] = folderNames.map((name: string) => {
-                return {
-                    name: name,
-                    fileCount: 0
-                };
-            });
+                .map((item: {name: string; id: number }) => {
+                    return {
+                        name: item.name,
+                        fileCount: 0,
+                        path: item.id
+                    };
+                });
             return folderList;
         }
         catch(error) {
