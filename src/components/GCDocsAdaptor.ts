@@ -156,14 +156,12 @@ import { IFolderContents } from '../Interfaces/iFolderContents';
      * Lists all files and directories in the given directory separately, including subdirectories.
      *
      * @param {string} dirPath - The path to the directory.
-     * @returns {DirectoryContents} - An object containing lists of files and directories.
+     * @returns {Promise<{files: string[], directories: string[]}>} - An object containing lists of files and directories.
      */
      public async listFilesAndDirectories(dirPath: string): Promise<{files: string[], directories: string[]}> {
         const result: {files: string[], directories: string[]} = { files: [], directories: [] };
 
-        try {
-            console.log(dirPath);
-            
+        try {            
             const items: IFolderContents = await this.getFolderContents(dirPath);
             result.files.push(...items.files.map(file => file.path.toString()));
             items.folders.forEach(async item => {
@@ -183,6 +181,34 @@ import { IFolderContents } from '../Interfaces/iFolderContents';
     public async listDocxFiles(dirPath: string): Promise<string[]> {
         const { files } = await this.listFilesAndDirectories(dirPath);
         return files; // this.getFolders() already filters for documents
+    }
+
+    /**
+     * Download the document at the given node and save it at /src/temp/GCdocsDownloadedDocuments/
+     *
+     * @param {string} nodeID - The path to the node.
+     * @returns {Promise<void>} 
+     */
+    public async downloadDocumentContent(nodeID: string): Promise<void> {
+        let nodeURL = `https://dev.gcdocs.gc.ca/csc-scc/llisapi.dll/api/v1/nodes/${nodeID.toString()}/content`;
+        try{
+            const response = await fetch(nodeURL, {
+                method: 'GET',
+                headers: await this.getAuthHeaders(),
+            });
+            
+            if (!response.ok) {   
+                let errorData = await response.text();
+                throw new Error(`Failed to fetch folder content ${errorData}`);
+            }
+            let buffer = await response.arrayBuffer();
+            let fName = await response.headers.get('content-disposition').match(/filename="?([^"]+)"?/)?.[1];
+            fs.writeFile(`./temp/GCdocsDownloadedDocuments/${fName}`,Buffer.from(buffer));
+            
+        }
+        catch(error) {
+            throw error;
+        }
     }
 }
 

@@ -313,7 +313,8 @@ async function testFile(path: string): Promise<boolean> {
 }
 
 async function testFolder(path: string, progressBar: ProgressBar) {
-  let documents = listDocxFiles(path);
+  let adaptor = await getFileSystemAdapter();
+  let documents = await adaptor.listDocxFiles(path);
   let testResults = {
     numfiles: documents.length,
     results: [] as { path: string; success: boolean; passed: boolean | null }[]
