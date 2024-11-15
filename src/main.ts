@@ -254,7 +254,7 @@ async function handleGetContent (event: IpcMainInvokeEvent, path: string) {
     let normalizedPath = pathModule.normalize(path).replace(/\\/g, '/');
     let adaptor = await getFileSystemAdapter();
     let content  = await adaptor.getFolderContents(normalizedPath);
-    let filteredContent: IFolderContents = content[0];
+    let filteredContent: IFolderContents = content;
     filteredContent.files = filterDocxFiles(filteredContent.files);
     filteredContent.files = await markFilesAccessibility(filteredContent.files, normalizedPath);
 
@@ -268,13 +268,16 @@ async function handleGetContent (event: IpcMainInvokeEvent, path: string) {
 
 async function handleGetReport(path: string) {
   try{
-    let documents = listDocxFiles(path);
+    let adaptor = await getFileSystemAdapter();
+    let documents = await adaptor.listDocxFiles(path);
     let report = {
       path: path,
       numFiles: 0, 
       numAccessibleFiles: 0,
       files: [] as IFile[]
     };
+    console.log(documents);
+    
     let documentList: IFile[] = await Promise.all(
       documents.map(async (filePath) => { // Create IFile objects with name, path, and fileCount initialized to 0
         return {

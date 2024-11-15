@@ -10,7 +10,6 @@ import { IFolderContents } from '../Interfaces/iFolderContents';
  * An implementation of the IFileSystem interface for interacting with theSystem file system.
  */
  export class GCDocsAdapter implements IFileSystem {
-    // private authUrl: string;
     private OTCSTicket: string | null;
 
     constructor() {
@@ -27,7 +26,6 @@ import { IFolderContents } from '../Interfaces/iFolderContents';
             const username = process.env.GCDOCS_USERNAME;
             const password = process.env.GCDOCS_PASSWORD;
             const GCdocsAPIURL = 'https://dev.gcdocs.gc.ca/csc-scc/llisapi.dll/api/v1/auth';
-            const postData = {username: username, password: password};
             const response = await fetch(GCdocsAPIURL, {
                 method: 'POST',
                 headers: {
@@ -134,27 +132,57 @@ import { IFolderContents } from '../Interfaces/iFolderContents';
      * Retrieves the contents of a folder at the specified directory path.
      *
      * @param {string} directoryPath - The path of the directory.
-     * @return {Promise<IFolderContents[]>} A promise that resolves to an array of IFolderContents objects representing the contents of the folder.
+     * @return {Promise<IFolderContents>} A promise that resolves to an array of IFolderContents objects representing the contents of the folder.
      */
-    public async getFolderContents(directoryPath: string): Promise<IFolderContents[]> {
+    public async getFolderContents(directoryPath: string): Promise<IFolderContents> {
         const dirURL = `https://dev.gcdocs.gc.ca/csc-scc/llisapi.dll/api/v1/nodes/${directoryPath}/nodes`;
         try{
 
             let folders = await this.getFolders(dirURL);
             let files = await this.getFiles(dirURL);
-            return [
-                {
-                    name: dirURL,
+            return {
+                    name: directoryPath,
                     folders: folders,
                     files: files
-
-                }
-            ]
+                };
             
         }
         catch(error) {
             throw error;
         }
+    }
+
+    /**
+     * Lists all files and directories in the given directory separately, including subdirectories.
+     *
+     * @param {string} dirPath - The path to the directory.
+     * @returns {DirectoryContents} - An object containing lists of files and directories.
+     */
+     public async listFilesAndDirectories(dirPath: string): Promise<{files: string[], directories: string[]}> {
+        const result: {files: string[], directories: string[]} = { files: [], directories: [] };
+
+        try {
+            console.log(dirPath);
+            
+            const items: IFolderContents = await this.getFolderContents(dirPath);
+            result.files.push(...items.files.map(file => file.path.toString()));
+            items.folders.forEach(async item => {
+                result.directories.push(item.path);
+                const subDirContents = this.listFilesAndDirectories(item.path);
+                result.files.push(...(await subDirContents).files);
+                result.directories.push(...(await subDirContents).directories);
+            });
+
+            return result;
+        } catch (error) {
+            console.error(`Error reading directory: ${error.message}`);
+            return result;
+        }
+    }
+
+    public async listDocxFiles(dirPath: string): Promise<string[]> {
+        const { files } = await this.listFilesAndDirectories(dirPath);
+        return files; // this.getFolders() already filters for documents
     }
 }
 

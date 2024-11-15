@@ -83,7 +83,7 @@ async function fetchFolderContents(path: string): Promise<any> {
     try {
         const contents = await sa.getFolderContents(path);
 
-        let c: IFolderContents = contents[0];
+        let c: IFolderContents = contents;
         c.files = filterDocxFiles(c.files);
         c.files = await markFilesAccessibility(c.files);
 
