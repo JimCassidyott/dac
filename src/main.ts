@@ -5,7 +5,6 @@ import { IFolderContents } from "./Interfaces/iFolderContents";
 import { IFile } from "./Interfaces/iFile";
 import { changeIsAccessibleProperty, isAccessible, testAccessiblity } from "./components/accessibilityChecker";
 import ProgressBar = require('electron-progressbar');
-import { listDocxFiles } from './directory';
 import { GCDocsAdapter } from './components/GCDocsAdaptor';
 
 function createWindow() {
