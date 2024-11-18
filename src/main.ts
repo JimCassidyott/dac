@@ -302,8 +302,8 @@ async function handleGetReport(path: string) {
 
 async function testFile(path: string): Promise<boolean> {
   try {
-    const fileIsAccessible = await testAccessiblity(path); 
-    changeIsAccessibleProperty(path, fileIsAccessible === true);
+    const {filePath, fileIsAccessible} = await testAccessiblity(path, fileSource); 
+    changeIsAccessibleProperty(filePath, fileIsAccessible === true);
     return fileIsAccessible; 
   } catch (error) {
     // Rethrow the error to be handled by the calling code

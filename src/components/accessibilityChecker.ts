@@ -7,6 +7,7 @@ import * as fs from 'fs';
 import * as pa11y from 'pa11y';
 import * as JSZip from 'jszip';
 import { create } from 'xmlbuilder2';
+import { GCDocsAdapter } from './GCDocsAdaptor';
 
 const errorCodesToIgnore = [
     'WCAG2AAA.Principle3.Guideline3_1.3_1_1.H57.3.Lang',
@@ -293,18 +294,11 @@ export async function changeIsAccessibleProperty(filePath: string, isAccessible:
         ensureThedocPropsCustomXmlExists(filePath)
         const zip = await readDocxFile(filePath);
         const customPropsFile = zip.file('docProps/custom.xml');
-        // let content = ""
-        // if (customPropsFile) {
         let content = await customPropsFile.async('string');
-        // } else {
-        //     content = createCustomPropertyCollectionWithIsAccessibleProperty();
-        // }
-        // console.log("content", content, content.length)
         const updatedContent = await updateIsAccessibleProperty(content, isAccessible);
 
         zip.file('docProps/custom.xml', updatedContent);
         const newContent = await zip.generateAsync({ type: 'nodebuffer' });
-        // console.log("newContent", updatedContent)
         await fs.promises.writeFile(filePath, newContent);
 
     } catch (err) {
@@ -358,9 +352,6 @@ async function updateIsAccessibleProperty(xmlString: string, isAccessible: boole
         const builder = new Builder();
         const updatedXmlString = builder.buildObject(result);
 
-        // Print the updated XML string
-        // console.log(updatedXmlString);
-
         return updatedXmlString;
     } catch (err) {
         console.error('Error processing XML:', err);
@@ -388,32 +379,34 @@ function convertDocxToHtml(inputFilePath: string, outputFilePath: string): void 
  * running accessibility checks on the resulting HTML.
  *
  * @param {string} inputFilePath - The path to the input file.
- * @return {Promise<boolean>} A promise that resolves to a boolean indicating
- * whether the input file is accessible.
+ * @param {string} fileSource - string 'SYSTEM' | 'GCDOCS' indicating where the source of the file is
+ * @return {Promise<{filePath: string, fileIsAccessible: boolean}>} A promise that resolves to an object containing a boolean indicating
+ * whether the input file is accessible and a string indicating the path to the file that was tested.
  */
-export async function testAccessiblity(inputFilePath: string): Promise<boolean> {
-    let filteredResults = [];
+export async function testAccessiblity(filePath: string, fileSource: string): Promise<{filePath: string, fileIsAccessible: boolean}> {
     try {
         // Check if the input file exists
-        if (!fs.existsSync(inputFilePath)) {
-            throw new Error(`Input file does not exist: ${inputFilePath}`);
+        if (fileSource === 'GCDOCS') {
+            let adapter = new GCDocsAdapter();
+            filePath = await adapter.downloadDocumentContent(filePath);
+            
         }
-        const outputFilePath = inputFilePath + '.html';
+        if (!fs.existsSync(filePath)) {
+            throw new Error(`Input file does not exist: ${filePath}`);
+        }
+        const outputFilePath = filePath + '.html';
         // Run the Pandoc command synchronously
-        convertDocxToHtml(inputFilePath, outputFilePath);
+        convertDocxToHtml(filePath, outputFilePath);
 
         // Use pa11y to check the HTML file for accessibility issues
         const results = await pa11y(outputFilePath, pa11yOptions as any)
         const filteredResults = results.issues.filter(issue => !errorCodesToIgnore.includes(issue.code));
 
-        // console.log(results.issues, filteredResults.length);
-        return filteredResults.length === 0
+        let fileIsAccessible = filteredResults.length === 0;
+        return {filePath, fileIsAccessible};
     } catch (error) {
-        // console.error(`Error during conversion or accessibility check: ${error.message}`);
+        console.error(`Error during conversion or accessibility check: ${error.message}`);
         throw error;
-
-    } finally {
-        // fs.unlinkSync(outputFilePath);
     }
 }
 // async function exampleUsage() {
@@ -429,113 +422,3 @@ export async function testAccessiblity(inputFilePath: string): Promise<boolean> 
 // }
 
 // exampleUsage();
-
-const inputFilePath = '..\\..\\demofiles\\accessible\\accessible.docx';
-
-// testAccessiblity(inputFilePath).then(isAccessible => {
-//     changeIsAccessibleProperty(inputFilePath, isAccessible === true);
-//     if (isAccessible) {
-//         console.log('The document is accessible.');
-//     } else {
-//         console.log('The document is not accessible.');
-//     }
-// }).catch(error => {
-//     console.error('An error occurred:', error);
-// });
-
-// ensureThedocPropsCustomXmlExists(inputFilePath).then(() => {
-//     console.log('isAccessible property has been added to the document.');
-// })
-// changeIsAccessibleProperty(inputFilePath, true).then(() => {
-//     console.log('isAccessible property has been updated in the document.');
-// })
-
-// /**
-//  * Reads the .docx file and returns the zip object.
-//  *
-//  * @param {string} filePath - The path to the Word document.
-//  * @returns {AdmZip} The zip object representing the .docx file.
-//  */
-// function readDocxFile(filePath: string): typeof AdmZip {
-//     const fileExtension: string = path.extname(filePath).toLowerCase();
-//     if (fileExtension !== '.docx') {
-//         throw new Error('The provided file is not a Word document (.docx)');
-//     }
-//     return new AdmZip(filePath);
-// }
-
-
-
-/**
- * Gets or creates the custom.xml content from the zip object.
- *
- * @param {AdmZip} zip - The zip object representing the .docx file.
- * @returns {Promise<string>} The custom.xml content.
- */
-// async function getOrCreateCustomXmlContent(zip: typeof AdmZip): Promise<string> {
-//   const customXml = zip.getEntry('docProps/custom.xml');
-//   if (!customXml) {
-//       return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/custom-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"></Properties>';
-//   }
-//   return customXml.getData().toString('utf8'); //FIXME: this line throws error "ADM-ZIP: No descriptor present" with some .docx files
-// }
-
-// /**
-//  * Updates or creates the isAccessible property in the custom properties XML.
-//  *
-//  * @param {any} properties - The parsed custom properties XML.
-//  * @param {boolean} isAccessible - The value to set for the isAccessible property.
-//  */
-// function updateIsAccessibleProperty(properties: any, isAccessible: boolean): void {
-//     let isAccessibleProperty = properties['property']?.find((prop: any) => prop.$.name === 'isAccessible');
-//     if (isAccessibleProperty) {
-//         isAccessibleProperty['vt:bool'] = isAccessible.toString();
-//     } else {
-//         if (!properties['property']) {
-//             properties['property'] = [];
-//         }
-//         properties['property'].push({
-//             $: { name: 'isAccessible', fmtid: '{D5CDD505-2E9C-101B-9397-08002B2CF9AE}', pid: properties['property'].length + 2 },
-//             'vt:bool': isAccessible.toString()
-//         });
-//     }
-// }
-
-
-/**
- * Writes the updated custom.xml content back to the zip object and saves the .docx file.
- *
- * @param {typeOf AdmZip} zip - The zip object representing the .docx file.
- * @param {string} filePath - The path to the Word document.
- * @param {string} updatedXmlContent - The updated custom.xml content.
- */
-// function saveUpdatedDocxFile(zip: typeof AdmZip, filePath: string, updatedXmlContent: string): void {
-//   zip.updateFile('docProps/custom.xml', Buffer.from(updatedXmlContent, 'utf8'));
-//   zip.writeZip(filePath);
-// }
-
-/**
- * Updates the isAccessible property in the custom properties XML of a Word document.
- *
- * @param {string} filePath - The path to the Word document.
- * @param {boolean} isAccessible - The value to set for the isAccessible property.
- * @returns {Promise<void>} A Promise that resolves when the update is complete.
- * @throws {Error} If there is an error reading or parsing the custom properties XML.
- */
-// export async function changeIsAccessibleProperty_old(filePath: string, isAccessible: boolean): Promise<void> {
-//     try {
-//         const zip = readDocxFile(filePath);
-//         const customXmlContent = await getOrCreateCustomXmlContent(zip);
-
-//         const parser = new xml2js.Parser();
-//         const builder = new xml2js.Builder();
-//         const result = await parser.parseStringPromise(customXmlContent);
-
-//         updateIsAccessibleProperty(result['Properties'], isAccessible);
-
-//         const updatedXmlContent = builder.buildObject(result);
-//         saveUpdatedDocxFile(zip, filePath, updatedXmlContent);
-//     } catch (error) {
-//         throw new Error(`Error updating custom properties XML: ${error.message}`);
-//     }
-// }
