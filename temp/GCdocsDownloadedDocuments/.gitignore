@@ -1,0 +1,4 @@
+# git doesn't allow empty folders to be commited to git without at least one tracked file.
+# this folder is the folder that files downloaded from GCdocs will be stored in *temporarily*
+*
+!.gitignore
