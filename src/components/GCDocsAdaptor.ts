@@ -73,9 +73,9 @@ import { IFolderContents } from '../Interfaces/iFolderContents';
             let jsonResponse = await response.json();
             
             const fileList: IFile[] = jsonResponse.data
-                .filter((item: { type: number; }) => item.type == 144)
-                .map((item: { name: string; id: number; mime_type: string; size: number }) => {
-                    return {
+                .filter((item: { type: number; name: string }) => (item.type == 144) && (item.name.split('.').pop() == "docx")) //type 144 should be documents but i guess GCdocs
+                .map((item: { name: string; id: number; mime_type: string; size: number }) => {                                 //expects the user to add in this type otherwise any 
+                    return {                                                                                                    //file defaults to type 144
                         name: item.name, // Name of the file
                         path: item.id, // Path of the file
                         size: item.size, // Size in bytes or megabytes
@@ -164,12 +164,12 @@ import { IFolderContents } from '../Interfaces/iFolderContents';
         try {            
             const items: IFolderContents = await this.getFolderContents(dirPath);
             result.files.push(...items.files.map(file => file.path.toString()));
-            items.folders.forEach(async item => {
+            for (const item of items.folders){
                 result.directories.push(item.path);
-                const subDirContents = this.listFilesAndDirectories(item.path);
-                result.files.push(...(await subDirContents).files);
-                result.directories.push(...(await subDirContents).directories);
-            });
+                const subDirContents = await this.listFilesAndDirectories(item.path);
+                result.files.push(...subDirContents.files);
+                result.directories.push(...subDirContents.directories);
+            }
 
             return result;
         } catch (error) {
@@ -187,9 +187,9 @@ import { IFolderContents } from '../Interfaces/iFolderContents';
      * Download the document at the given node and save it at /src/temp/GCdocsDownloadedDocuments/
      *
      * @param {string} nodeID - The path to the node.
-     * @returns {Promise<void>} 
+     * @returns {Promise<string>} - Path to the saved file.
      */
-    public async downloadDocumentContent(nodeID: string): Promise<void> {
+    public async downloadDocumentContent(nodeID: string): Promise<string> {
         let nodeURL = `https://dev.gcdocs.gc.ca/csc-scc/llisapi.dll/api/v1/nodes/${nodeID.toString()}/content`;
         try{
             const response = await fetch(nodeURL, {
@@ -203,8 +203,8 @@ import { IFolderContents } from '../Interfaces/iFolderContents';
             }
             let buffer = await response.arrayBuffer();
             let fName = await response.headers.get('content-disposition').match(/filename="?([^"]+)"?/)?.[1];
-            fs.writeFile(`./temp/GCdocsDownloadedDocuments/${fName}`,Buffer.from(buffer));
-            
+            await fs.writeFile(`./temp/GCdocsDownloadedDocuments/${fName}`,Buffer.from(buffer));
+            return `./temp/GCdocsDownloadedDocuments/${fName}`;
         }
         catch(error) {
             throw error;
