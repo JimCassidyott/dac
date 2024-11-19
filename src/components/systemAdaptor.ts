@@ -1,4 +1,5 @@
-// import * as fs from 'fs';
+import * as fsSync from 'fs';
+import * as path from 'path';
 import * as fs from 'fs/promises';
 import { IFileSystem } from '../Interfaces/IFileSystem';
 import { IFile } from '../Interfaces/iFile';
@@ -35,10 +36,10 @@ export class SystemAdapter implements IFileSystem {
      * Retrieves the contents of a folder at the specified directory path.
      *
      * @param {string} directoryPath - The path of the directory.
-     * @return {Promise<IFolderContents[]>} A promise that resolves to an array of IFolderContents objects representing the contents of the folder.
+     * @return {Promise<IFolderContents>} A promise that resolves to an array of IFolderContents objects representing the contents of the folder.
      * @throws {Error} If the directory does not exist or access is denied.
      */
-    public async getFolderContents(directoryPath: string): Promise<IFolderContents[]> {
+    public async getFolderContents(directoryPath: string): Promise<IFolderContents> {
         try {
             // Check if the directory exists and is readable
             await fs.access(directoryPath, fs.constants.R_OK);
@@ -48,16 +49,14 @@ export class SystemAdapter implements IFileSystem {
             const files = await this.getFiles(directoryPath);
 
             // Return the folder contents as an array with a single object
-            return [
-                {
+            return {
                     // Name of the directory
                     name: directoryPath,
                     // List of folders in the directory
                     folders: folders,
                     // List of files in the directory
                     files: files
-                }
-            ];
+                };
         } catch (err: any) {
             // Handle different error types
             if (err.code === 'ENOENT') {
@@ -118,5 +117,52 @@ export class SystemAdapter implements IFileSystem {
             throw new Error(`Error: ${err.message}`);
         }
 
+    }
+
+    /**
+     * Lists all files and directories in the given directory separately, including subdirectories.
+     *
+     * @param {string} dirPath - The path to the directory.
+     * @returns {DirectoryContents} - An object containing lists of files and directories.
+     */
+    public listFilesAndDirectories(dirPath: string): {files: string[], directories: string[]} {
+        const result: {files: string[], directories: string[]} = { files: [], directories: [] };
+
+        try {
+            const items = fsSync.readdirSync(dirPath);
+
+            items.forEach(item => {
+                const fullPath = path.join(dirPath, item);
+                const stat = fsSync.statSync(fullPath);
+
+                if (stat.isDirectory()) {
+                    result.directories.push(fullPath);
+                    // Recursively list files and directories in the subdirectory
+                    const subDirContents = this.listFilesAndDirectories(fullPath);
+                    result.files.push(...subDirContents.files);
+                    result.directories.push(...subDirContents.directories);
+                } else if (stat.isFile()) {
+                    result.files.push(fullPath);
+                }
+            });
+
+            return result;
+        } catch (error) {
+            console.error(`Error reading directory: ${error.message}`);
+            return result;
+        }
+    }
+
+    /**
+    * Lists all .docx files in the given directory and its subdirectories.
+    * Converts the file paths to full file paths.
+    *
+    * @param {string} dirPath - The path to the directory.
+    * @returns {Promise<string[]>} - A list of .docx file paths.
+    */
+    public listDocxFiles(dirPath: string): Promise<string[]> {
+        const { files } = this.listFilesAndDirectories(dirPath);
+        return Promise.resolve(files
+            .filter(file => path.extname(file) === '.docx'));
     }
 }

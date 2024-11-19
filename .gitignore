@@ -104,4 +104,6 @@ dist/
 
 # Temporary folders
 tmp/
-temp/
+/temp/GCdocsDownloadedDocuments/*
+!/temp/GCdocsDownloadedDocuments/
+!/temp/GCdocsDownloadedDocuments/.gitignore

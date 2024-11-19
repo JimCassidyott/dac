@@ -5,7 +5,6 @@ import { IFolderContents } from "./Interfaces/iFolderContents";
 import { IFile } from "./Interfaces/iFile";
 import { changeIsAccessibleProperty, isAccessible, testAccessiblity } from "./components/accessibilityChecker";
 import ProgressBar = require('electron-progressbar');
-import { listDocxFiles } from './directory';
 import { GCDocsAdapter } from './components/GCDocsAdaptor';
 
 function createWindow() {
@@ -254,7 +253,7 @@ async function handleGetContent (event: IpcMainInvokeEvent, path: string) {
     let normalizedPath = pathModule.normalize(path).replace(/\\/g, '/');
     let adaptor = await getFileSystemAdapter();
     let content  = await adaptor.getFolderContents(normalizedPath);
-    let filteredContent: IFolderContents = content[0];
+    let filteredContent: IFolderContents = content;
     filteredContent.files = filterDocxFiles(filteredContent.files);
     filteredContent.files = await markFilesAccessibility(filteredContent.files, normalizedPath);
 
@@ -268,13 +267,16 @@ async function handleGetContent (event: IpcMainInvokeEvent, path: string) {
 
 async function handleGetReport(path: string) {
   try{
-    let documents = listDocxFiles(path);
+    let adaptor = await getFileSystemAdapter();
+    let documents = await adaptor.listDocxFiles(path);
     let report = {
       path: path,
       numFiles: 0, 
       numAccessibleFiles: 0,
       files: [] as IFile[]
     };
+    console.log(documents);
+    
     let documentList: IFile[] = await Promise.all(
       documents.map(async (filePath) => { // Create IFile objects with name, path, and fileCount initialized to 0
         return {
@@ -300,8 +302,8 @@ async function handleGetReport(path: string) {
 
 async function testFile(path: string): Promise<boolean> {
   try {
-    const fileIsAccessible = await testAccessiblity(path); 
-    changeIsAccessibleProperty(path, fileIsAccessible === true);
+    const {filePath, fileIsAccessible} = await testAccessiblity(path, fileSource); 
+    changeIsAccessibleProperty(filePath, fileIsAccessible === true);
     return fileIsAccessible; 
   } catch (error) {
     // Rethrow the error to be handled by the calling code
@@ -310,7 +312,8 @@ async function testFile(path: string): Promise<boolean> {
 }
 
 async function testFolder(path: string, progressBar: ProgressBar) {
-  let documents = listDocxFiles(path);
+  let adaptor = await getFileSystemAdapter();
+  let documents = await adaptor.listDocxFiles(path);
   let testResults = {
     numfiles: documents.length,
     results: [] as { path: string; success: boolean; passed: boolean | null }[]

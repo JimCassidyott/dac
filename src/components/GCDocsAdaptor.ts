@@ -10,7 +10,6 @@ import { IFolderContents } from '../Interfaces/iFolderContents';
  * An implementation of the IFileSystem interface for interacting with theSystem file system.
  */
  export class GCDocsAdapter implements IFileSystem {
-    // private authUrl: string;
     private OTCSTicket: string | null;
 
     constructor() {
@@ -27,7 +26,6 @@ import { IFolderContents } from '../Interfaces/iFolderContents';
             const username = process.env.GCDOCS_USERNAME;
             const password = process.env.GCDOCS_PASSWORD;
             const GCdocsAPIURL = 'https://dev.gcdocs.gc.ca/csc-scc/llisapi.dll/api/v1/auth';
-            const postData = {username: username, password: password};
             const response = await fetch(GCdocsAPIURL, {
                 method: 'POST',
                 headers: {
@@ -75,9 +73,9 @@ import { IFolderContents } from '../Interfaces/iFolderContents';
             let jsonResponse = await response.json();
             
             const fileList: IFile[] = jsonResponse.data
-                .filter((item: { type: number; }) => item.type == 144)
-                .map((item: { name: string; id: number; mime_type: string; size: number }) => {
-                    return {
+                .filter((item: { type: number; name: string }) => (item.type == 144) && (item.name.split('.').pop() == "docx")) //type 144 should be documents but i guess GCdocs
+                .map((item: { name: string; id: number; mime_type: string; size: number }) => {                                 //expects the user to add in this type otherwise any 
+                    return {                                                                                                    //file defaults to type 144
                         name: item.name, // Name of the file
                         path: item.id, // Path of the file
                         size: item.size, // Size in bytes or megabytes
@@ -134,23 +132,79 @@ import { IFolderContents } from '../Interfaces/iFolderContents';
      * Retrieves the contents of a folder at the specified directory path.
      *
      * @param {string} directoryPath - The path of the directory.
-     * @return {Promise<IFolderContents[]>} A promise that resolves to an array of IFolderContents objects representing the contents of the folder.
+     * @return {Promise<IFolderContents>} A promise that resolves to an array of IFolderContents objects representing the contents of the folder.
      */
-    public async getFolderContents(directoryPath: string): Promise<IFolderContents[]> {
+    public async getFolderContents(directoryPath: string): Promise<IFolderContents> {
         const dirURL = `https://dev.gcdocs.gc.ca/csc-scc/llisapi.dll/api/v1/nodes/${directoryPath}/nodes`;
         try{
 
             let folders = await this.getFolders(dirURL);
             let files = await this.getFiles(dirURL);
-            return [
-                {
-                    name: dirURL,
+            return {
+                    name: directoryPath,
                     folders: folders,
                     files: files
-
-                }
-            ]
+                };
             
+        }
+        catch(error) {
+            throw error;
+        }
+    }
+
+    /**
+     * Lists all files and directories in the given directory separately, including subdirectories.
+     *
+     * @param {string} dirPath - The path to the directory.
+     * @returns {Promise<{files: string[], directories: string[]}>} - An object containing lists of files and directories.
+     */
+     public async listFilesAndDirectories(dirPath: string): Promise<{files: string[], directories: string[]}> {
+        const result: {files: string[], directories: string[]} = { files: [], directories: [] };
+
+        try {            
+            const items: IFolderContents = await this.getFolderContents(dirPath);
+            result.files.push(...items.files.map(file => file.path.toString()));
+            for (const item of items.folders){
+                result.directories.push(item.path);
+                const subDirContents = await this.listFilesAndDirectories(item.path);
+                result.files.push(...subDirContents.files);
+                result.directories.push(...subDirContents.directories);
+            }
+
+            return result;
+        } catch (error) {
+            console.error(`Error reading directory: ${error.message}`);
+            return result;
+        }
+    }
+
+    public async listDocxFiles(dirPath: string): Promise<string[]> {
+        const { files } = await this.listFilesAndDirectories(dirPath);
+        return files; // this.getFolders() already filters for documents
+    }
+
+    /**
+     * Download the document at the given node and save it at /src/temp/GCdocsDownloadedDocuments/
+     *
+     * @param {string} nodeID - The path to the node.
+     * @returns {Promise<string>} - Path to the saved file.
+     */
+    public async downloadDocumentContent(nodeID: string): Promise<string> {
+        let nodeURL = `https://dev.gcdocs.gc.ca/csc-scc/llisapi.dll/api/v1/nodes/${nodeID.toString()}/content`;
+        try{
+            const response = await fetch(nodeURL, {
+                method: 'GET',
+                headers: await this.getAuthHeaders(),
+            });
+            
+            if (!response.ok) {   
+                let errorData = await response.text();
+                throw new Error(`Failed to fetch folder content ${errorData}`);
+            }
+            let buffer = await response.arrayBuffer();
+            let fName = await response.headers.get('content-disposition').match(/filename="?([^"]+)"?/)?.[1];
+            await fs.writeFile(`./temp/GCdocsDownloadedDocuments/${fName}`,Buffer.from(buffer));
+            return `./temp/GCdocsDownloadedDocuments/${fName}`;
         }
         catch(error) {
             throw error;

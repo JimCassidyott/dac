@@ -43,9 +43,9 @@ export class FileSystem {
      * Retrieves the contents of a folder at the specified directory path.
      *
      * @param {string} directoryPath - The path of the directory.
-     * @return {Promise<IFolderContents[]>} A promise that resolves to an array of strings representing the contents of the folder.
+     * @return {Promise<IFolderContents>} A promise that resolves to an array of strings representing the contents of the folder.
      */
-    public async getFolderContents(directoryPath: string): Promise<IFolderContents[]> {
+    public async getFolderContents(directoryPath: string): Promise<IFolderContents> {
         // Implementation to get folders
         return this.fileSystemAdapter.getFolderContents(directoryPath);
     }
