@@ -125,6 +125,7 @@ window.electronAPI.receive('context-menu-action', (data) => {
 });
 
 window.electronAPI.receive('top-menu-action', (data) => {  
+  document.getElementById("right-panel").innerHTML = null;
   if (data.action == "open-folder") {
     let html = 
     `
@@ -135,6 +136,13 @@ window.electronAPI.receive('top-menu-action', (data) => {
     html += generateFolderTree(data.content.folders, data.content.name);
     html += `</ul></li></ul>`;
     document.getElementById('file-explorer').innerHTML = html;
+  }
+
+  if (data.action == "gcdocs-connection-error") {
+    new window.Notification("Error", {body: "Something went wrong while connecting to GCdocs"});
+    let rightPanel = document.getElementById("right-panel");
+    document.getElementById('file-explorer').innerHTML = null;
+    rightPanel.innerHTML = `<p class="text-danger">Something went wrong while attempting to connect to GCdocs please make youre you entered a valid URL.</p>`
   }
 });
 

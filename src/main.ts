@@ -147,11 +147,7 @@ function createWindow() {
           accelerator: 'CmdOrCtrl+G',
           click: async () => {
             fileSource = 'GCDOCS';
-            let folderContent = await handleGetContent(null, '6345941'); // temp starting point 6345941 
-            mainWindow.webContents.send("top-menu-action", {
-              action: 'open-folder',
-              content: folderContent
-            });
+            getGCdocsUrl();
           }
         },
         { type: 'separator' },
@@ -190,6 +186,22 @@ function createWindow() {
 
   // Open the DevTools.
   mainWindow.webContents.openDevTools();
+
+  ipcMain.on('url-submitted', async (event, url) => {
+    try{
+      let nodeID = url.match(/nodes\/(\d+)/)[1];
+      let folderContent = await handleGetContent(null, nodeID);
+      mainWindow.webContents.send("top-menu-action", {
+        action: 'open-folder',
+        content: folderContent
+      });
+    }
+    catch {
+      mainWindow.webContents.send("top-menu-action", {
+        action: 'gcdocs-connection-error',
+      });
+    }
+  });
 }
 
 
@@ -373,4 +385,19 @@ function createProgressBar(textStr: string, detailStr: string): ProgressBar {
 
 function updateProgressBarValue(progressBar: ProgressBar, increment: number) {
   progressBar.value += increment;
+}
+
+function getGCdocsUrl() {
+  const inputWindow = new BrowserWindow({
+    width: 600,
+    height: 300,
+    modal: true,
+    parent: BrowserWindow.getFocusedWindow(),
+    webPreferences: {
+      preload: pathModule.join(__dirname, "preload.js"),
+      contextIsolation: true, 
+    },
+  });
+
+  inputWindow.loadFile(pathModule.join(__dirname, "../getGCdocsUrlDialog.html")); // Create an HTML file for the form
 }
