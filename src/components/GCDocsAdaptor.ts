@@ -5,6 +5,9 @@ import { IFileSystem } from '../Interfaces/IFileSystem';
 import { IFile } from '../Interfaces/iFile';
 import { IFolder } from '../Interfaces/iFolder';
 import { IFolderContents } from '../Interfaces/iFolderContents';
+import FormData = require('form-data');
+import * as fsSync from 'fs';
+import { request } from 'undici';
 
 /**
  * An implementation of the IFileSystem interface for interacting with theSystem file system.
@@ -208,6 +211,60 @@ import { IFolderContents } from '../Interfaces/iFolderContents';
         }
         catch(error) {
             throw error;
+        }
+    }
+
+    /**
+     * upload a document that was downloaded from GCdocs for testing 
+     *
+     * @param {string} filePath - path to the local file to be uploaded. 
+     * @param {string} nodeID - The path to the node.
+     * @returns {Promise<boolean | Error>} - true if it successfully uploads the document, throw error otherwise. 
+     */
+    public async uploadDocumentContent(filePath: string, nodeID: string): Promise<boolean | Error>{
+        let nodeURL = `https://dev.gcdocs.gc.ca/csc-scc/llisapi.dll/api/v1/nodes/${nodeID.toString()}/versions`;
+        try{
+            let formData = new FormData();
+
+            formData.append("file", fsSync.createReadStream(filePath));
+            formData.append("description", "DAC: accessibility tested file");
+            const contentLength = await new Promise<number>((resolve, reject) => {
+                formData.getLength((err, length) => {
+                    if (err) reject(err);
+                    resolve(length);
+                })
+            });
+
+            //call getAuthHeaders() to make sure OTCSTicket is set and valid, use this.OTCSTocket in headers {} bc we are using formdata.getHeaders() (different content type)
+            await this.getAuthHeaders();
+            const headers = {
+                "OTCSTicket": this.OTCSTicket,
+                // "User-Agent": `DAC/0.8 (Node.js v${process.version})`,
+                "Accept-Encoding": "gzip, deflate",
+                "Accept": "*/*",
+                "Connection": "keep-alive",
+                "Content-Length": contentLength.toString(),
+                ...formData.getHeaders()
+            }
+
+            //use request from undici instead of fetch bc fetch throws type error when Content-Length header is manually added
+            const response = await request(nodeURL, {
+                method: "POST",
+                body: formData,
+                headers
+            })
+
+            if (response.statusCode != 200) {   
+                let errorData = await response.body.json();
+                throw new Error(`Failed to fetch folder content ${errorData}`);
+            }
+            
+            return true;
+        }
+        catch (error){
+            // throw error;
+            console.error(error);
+            return false;
         }
     }
 }

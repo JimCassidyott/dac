@@ -189,14 +189,15 @@ function createWindow() {
 
   ipcMain.on('url-submitted', async (event, url) => {
     try{
-      let nodeID = url.match(/nodes\/(\d+)/)[1];
+      let nodeID = url.match(/objId=(\d+)/)[1];
       let folderContent = await handleGetContent(null, nodeID);
       mainWindow.webContents.send("top-menu-action", {
         action: 'open-folder',
         content: folderContent
       });
     }
-    catch {
+    catch (err) {
+      console.error(err);
       mainWindow.webContents.send("top-menu-action", {
         action: 'gcdocs-connection-error',
       });
@@ -315,7 +316,17 @@ async function handleGetReport(path: string) {
 async function testFile(path: string): Promise<boolean> {
   try {
     const {filePath, fileIsAccessible} = await testAccessiblity(path, fileSource); 
-    changeIsAccessibleProperty(filePath, fileIsAccessible === true);
+    await changeIsAccessibleProperty(filePath, fileIsAccessible === true);
+    if (fileSource === "GCDOCS") {
+      let gcdocsAdapter = new GCDocsAdapter();
+      let res = await gcdocsAdapter.uploadDocumentContent(filePath, path);
+      if (!res) {
+        new Notification({
+          title: "Error",
+          body: `Failed to upload tested document to GCdocs`
+        }).show();
+      }
+    }
     return fileIsAccessible; 
   } catch (error) {
     // Rethrow the error to be handled by the calling code
