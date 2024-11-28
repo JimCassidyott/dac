@@ -26,24 +26,99 @@ async function addComment(docxFile: string, targetText: string, commentText: str
     }
     const doc = new DOMParser().parseFromString(documentXml, 'text/xml');
 
-    // Find the target text
+    // Find the target text with improved search
     const textNodes = doc.getElementsByTagName('w:t');
-    let targetNode: Element | null = null;
+    let targetNode: Node | null = null;
+    let targetRunElement: Node | null = null;
+    let targetParagraph: Node | null = null;
+
+    // First try exact match
     for (const node of Array.from(textNodes)) {
-        if (node.textContent?.includes(targetText)) {
+        const text = node.textContent || '';
+        if (text === targetText) {
             targetNode = node;
+            const parent = node.parentNode;
+            if (parent && parent.nodeType === 1) {
+                targetRunElement = parent;
+                const paragraphParent = parent.parentNode;
+                if (paragraphParent && paragraphParent.nodeType === 1) {
+                    targetParagraph = paragraphParent;
+                }
+            }
             break;
         }
     }
 
+    // If no exact match, try partial match
     if (!targetNode) {
+        for (const node of Array.from(textNodes)) {
+            const text = node.textContent || '';
+            if (text.includes(targetText)) {
+                targetNode = node;
+                const parent = node.parentNode;
+                if (parent && parent.nodeType === 1) {
+                    targetRunElement = parent;
+                    const paragraphParent = parent.parentNode;
+                    if (paragraphParent && paragraphParent.nodeType === 1) {
+                        targetParagraph = paragraphParent;
+                    }
+                }
+                break;
+            }
+        }
+    }
+
+    // If still no match, try concatenating adjacent text nodes within the same paragraph
+    if (!targetNode) {
+        const paragraphs = doc.getElementsByTagName('w:p');
+        for (const para of Array.from(paragraphs)) {
+            const paraTextNodes = para.getElementsByTagName('w:t');
+            let fullText = '';
+            let lastNode: Node | null = null;
+
+            // Build the full text of the paragraph
+            for (const node of Array.from(paraTextNodes)) {
+                const text = node.textContent || '';
+                fullText += text;
+                if (fullText.includes(targetText) && !targetNode) {
+                    targetNode = node;
+                    const parent = node.parentNode;
+                    if (parent && parent.nodeType === 1) {
+                        targetRunElement = parent;
+                        targetParagraph = para;
+                    }
+                    break;
+                }
+                lastNode = node;
+            }
+
+            if (targetNode) break;
+        }
+    }
+
+    if (!targetNode || !targetRunElement || !targetParagraph) {
         throw new Error(`Target text "${targetText}" not found in the document`);
     }
 
     // Create the comment reference with the numeric ID
+    const commentId = getNextCommentId(doc);
+
+    // Create comment range start
+    const commentRangeStart = doc.createElement('w:commentRangeStart');
+    commentRangeStart.setAttribute('w:id', commentId);
+    targetParagraph.insertBefore(commentRangeStart, targetRunElement);
+
+    // Create comment range end
+    const commentRangeEnd = doc.createElement('w:commentRangeEnd');
+    commentRangeEnd.setAttribute('w:id', commentId);
+    targetParagraph.insertBefore(commentRangeEnd, targetRunElement.nextSibling);
+
+    // Create the comment reference
     const commentReference = doc.createElement('w:commentReference');
-    commentReference.setAttribute('w:id', getNextCommentId(doc));
-    targetNode.parentNode?.appendChild(commentReference);
+    commentReference.setAttribute('w:id', commentId);
+    const commentRun = doc.createElement('w:r');
+    commentRun.appendChild(commentReference);
+    targetParagraph.insertBefore(commentRun, commentRangeEnd.nextSibling);
 
     // Add comment to comments.xml
     let commentsDoc: Document;
@@ -51,17 +126,72 @@ async function addComment(docxFile: string, targetText: string, commentText: str
     if (commentsXml) {
         commentsDoc = new DOMParser().parseFromString(commentsXml, 'text/xml');
     } else {
-        commentsDoc = new DOMParser().parseFromString('<w:comments xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"/>', 'text/xml');
+        // Create new comments.xml with proper namespace
+        commentsDoc = new DOMParser().parseFromString(
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+            '<w:comments ' +
+            'xmlns:o="urn:schemas-microsoft-com:office:office" ' +
+            'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ' +
+            'xmlns:v="urn:schemas-microsoft-com:vml" ' +
+            'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" ' +
+            'xmlns:w10="urn:schemas-microsoft-com:office:word" ' +
+            'xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" ' +
+            'xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" ' +
+            'xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" ' +
+            'xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" ' +
+            'xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing" ' +
+            'xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" ' +
+            'xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" ' +
+            'mc:Ignorable="w14 wp14 w15"/>',
+            'text/xml'
+        );
     }
 
     // Use the new function to add the comment
-    // console.log("commentsDoc:", commentsDoc);
-    console.log("commentsDoc:", new XMLSerializer().serializeToString(commentsDoc));
-    console.log(typeof addCommentToCollection(commentsDoc, commentText));
+    const newComment = addCommentToCollection(commentsDoc, commentText);
+    if (!newComment) {
+        throw new Error('Failed to create comment element');
+    }
 
     // Update the ZIP with modified XMLs
     zip.file('word/document.xml', new XMLSerializer().serializeToString(doc));
     zip.file('word/comments.xml', new XMLSerializer().serializeToString(commentsDoc));
+
+    // Ensure the document has a relationship to comments.xml
+    const documentRelsPath = 'word/_rels/document.xml.rels';
+    let relsXml = await zip.file(documentRelsPath)?.async('text');
+    let relsDoc: Document;
+
+    if (relsXml) {
+        relsDoc = new DOMParser().parseFromString(relsXml, 'text/xml');
+    } else {
+        // Create new relationships file if it doesn't exist
+        relsDoc = new DOMParser().parseFromString(
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+            '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"/>',
+            'text/xml'
+        );
+    }
+
+    // Check if comments relationship exists
+    let hasCommentsRelationship = false;
+    const relationships = relsDoc.getElementsByTagName('Relationship');
+    for (const rel of Array.from(relationships)) {
+        if (rel.getAttribute('Target') === 'comments.xml') {
+            hasCommentsRelationship = true;
+            break;
+        }
+    }
+
+    // Add comments relationship if it doesn't exist
+    if (!hasCommentsRelationship) {
+        const newRel = relsDoc.createElement('Relationship');
+        newRel.setAttribute('Id', 'rId' + (relationships.length + 1));
+        newRel.setAttribute('Type', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/comments');
+        newRel.setAttribute('Target', 'comments.xml');
+        relsDoc.documentElement.appendChild(newRel);
+        zip.file(documentRelsPath, new XMLSerializer().serializeToString(relsDoc));
+    }
 
     // Ensure the [Content_Types].xml file includes the comments part
     const contentTypesXml = await zip.file('[Content_Types].xml')?.async('text');
@@ -112,30 +242,70 @@ function getNextCommentId(commentsDoc: Document): string {
  * Creates and adds a new comment to a comments document.
  * @param commentsDoc - The XML document containing comments
  * @param commentText - The text content of the comment
- * @param author - Optional author name. Defaults to 'Script'
+ * @param author - Optional author name. Defaults to 'DAC'
  * @returns The newly created comment element
  */
 function addCommentToCollection(
     commentsDoc: Document,
     commentText: string,
-    author: string = 'Script'
-): Element {
+    author: string = 'DAC'
+): Node {
     const nextId = getNextCommentId(commentsDoc);
     const commentElement = commentsDoc.createElement('w:comment');
     commentElement.setAttribute('w:id', nextId);
     commentElement.setAttribute('w:author', author);
     commentElement.setAttribute('w:date', new Date().toISOString());
+    commentElement.setAttribute('w:initials', '');
 
-    const commentTextElement = commentsDoc.createElement('w:p');
-    const commentRunElement = commentsDoc.createElement('w:r');
+    // Create paragraph element
+    const commentPara = commentsDoc.createElement('w:p');
+
+    // Create paragraph properties
+    const commentParaPr = commentsDoc.createElement('w:pPr');
+    const overflowPunct = commentsDoc.createElement('w:overflowPunct');
+    overflowPunct.setAttribute('w:val', 'false');
+    const bidi = commentsDoc.createElement('w:bidi');
+    bidi.setAttribute('w:val', '0');
+    const rPr = commentsDoc.createElement('w:rPr');
+    commentParaPr.appendChild(overflowPunct);
+    commentParaPr.appendChild(bidi);
+    commentParaPr.appendChild(rPr);
+    commentPara.appendChild(commentParaPr);
+
+    // Create run element
+    const commentRun = commentsDoc.createElement('w:r');
+    const runProps = commentsDoc.createElement('w:rPr');
+    const rFonts = commentsDoc.createElement('w:rFonts');
+    rFonts.setAttribute('w:eastAsia', 'Segoe UI');
+    rFonts.setAttribute('w:cs', 'Tahoma');
+    const kern = commentsDoc.createElement('w:kern');
+    kern.setAttribute('w:val', '0');
+    const lang = commentsDoc.createElement('w:lang');
+    lang.setAttribute('w:val', 'en-US');
+    lang.setAttribute('w:eastAsia', 'en-US');
+    lang.setAttribute('w:bidi', 'en-US');
+
+    runProps.appendChild(rFonts);
+    runProps.appendChild(kern);
+    runProps.appendChild(lang);
+    commentRun.appendChild(runProps);
+
+    // Create text element with content
     const commentTextNode = commentsDoc.createElement('w:t');
     commentTextNode.textContent = commentText;
+    commentRun.appendChild(commentTextNode);
 
-    commentRunElement.appendChild(commentTextNode);
-    commentTextElement.appendChild(commentRunElement);
-    commentElement.appendChild(commentTextElement);
-    commentsDoc.documentElement.appendChild(commentElement);
-    console.log("commentElement:", commentElement);
+    // Assemble the comment structure
+    commentPara.appendChild(commentRun);
+    commentElement.appendChild(commentPara);
+
+    // Add to comments root
+    const commentsRoot = commentsDoc.getElementsByTagName('w:comments')[0];
+    if (!commentsRoot) {
+        throw new Error('Comments root element not found');
+    }
+    commentsRoot.appendChild(commentElement);
+
     return commentElement;
 }
 
@@ -150,10 +320,11 @@ async function getComments(docxFile: string): Promise<Array<{ id: string, text: 
 
     const commentsXml = await zip.file('word/comments.xml')?.async('text');
 
-    console.log(commentsXml);
     if (!commentsXml) {
         console.log('No comments.xml found in the document');
         return [];
+    } else {
+        console.log('Comments.xml found in the document:', commentsXml);
     }
 
     const doc = new DOMParser().parseFromString(commentsXml, 'text/xml');
@@ -207,6 +378,7 @@ const filePath = 'E:\\projects\\dac\\demo_files\\accessible\\accessible.docx';
  */
 async function main() {
     try {
+
         // Add a new comment
         await addComment(filePath, 'hero', 'Yes he is');
         console.log('Comment added successfully');
@@ -221,10 +393,10 @@ async function main() {
         }
 
         // Log the content of document.xml for debugging
-        const zip = await JSZip.loadAsync(await fs.readFile(filePath));
-        const documentXml = await zip.file('word/document.xml')?.async('text');
-        console.log('Content of document.xml:');
-        console.log(documentXml);
+        // const zip = await JSZip.loadAsync(await fs.readFile(filePath));
+        // const documentXml = await zip.file('word/document.xml')?.async('text');
+        // console.log('Content of document.xml:');
+        // console.log(documentXml);
 
         // printDocumentParagraphs(documentXml);
 
@@ -232,7 +404,5 @@ async function main() {
         console.error('Error:', error);
     }
 }
-
-// @ai: Write a function that takes a document.xml and iterates through all the paragraphs printing them to the screen as XML
 
 main();
