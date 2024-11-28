@@ -1,3 +1,6 @@
+/**
+ * Custom error class for handling heading-related errors in the document hierarchy.
+ */
 class HeadingError extends Error {
     constructor(message: string) {
         super(message);
@@ -5,14 +8,30 @@ class HeadingError extends Error {
     }
 }
 
+/**
+ * Represents a heading in a document hierarchy.
+ * Manages a tree structure where each heading can have child headings of deeper levels.
+ * For example, an H1 can have H2 children, H2 can have H3 children, etc.
+ */
 class Heading {
+    /** The text content of the heading */
     private text: string;
+    /** The heading level (1 for H1, 2 for H2, etc.) */
     private level: number;
+    /** Array of child headings under this heading */
     private children: Heading[];
+    /** Reference to the parent heading (null for root) */
     private parent: Heading | null;
+    /** Reference to the currently active heading in the hierarchy */
     private activeHeading: Heading;
+    /** Reference to the root (H1) heading of the document */
     private root: Heading | null;
 
+    /**
+     * Creates a new heading with the specified text and level.
+     * @param text The text content of the heading
+     * @param level The heading level (must be >= 1)
+     */
     constructor(text: string, level: number) {
         this.validateLevel(level);
         this.text = text;
@@ -27,12 +46,29 @@ class Heading {
         }
     }
 
+    /**
+     * Validates that the heading level is valid (>= 1).
+     * @param level The heading level to validate
+     * @throws HeadingError if level is less than 1
+     */
     private validateLevel(level: number): void {
         if (level < 1) {
             throw new HeadingError(`Invalid heading level: ${level}. Level must be 1 or greater.`);
         }
     }
 
+    /**
+     * Adds a new heading to the document hierarchy.
+     * The heading will be placed in the appropriate position based on its level
+     * and the current active heading.
+     * 
+     * @param text The text content of the new heading
+     * @param level The level of the new heading
+     * @throws HeadingError if:
+     *  - Adding another H1 heading
+     *  - First heading is not H1
+     *  - Cannot find valid position in hierarchy
+     */
     addHeading(text: string, level: number): void {
         this.validateLevel(level);
 
@@ -65,6 +101,14 @@ class Heading {
         }
     }
 
+    /**
+     * Attempts to add a new heading to the hierarchy by traversing up from the active heading.
+     * The heading can be added either as a child of a heading (if level is parent + 1)
+     * or as a sibling (if at same level).
+     * 
+     * @param newHeading The new heading to add to the hierarchy
+     * @returns true if heading was successfully added, false otherwise
+     */
     private tryAddHeadingToHierarchy(newHeading: Heading): boolean {
         let currentParent: Heading | null = this.activeHeading;
 
@@ -88,11 +132,20 @@ class Heading {
         return false;
     }
 
+    /**
+     * Adds a child heading to a parent heading, establishing the parent-child relationship.
+     * @param parent The parent heading
+     * @param child The child heading to add
+     */
     private addHeadingToParent(parent: Heading, child: Heading): void {
         child.parent = parent;
         parent.children.push(child);
     }
 
+    /**
+     * Returns information about the currently active heading.
+     * @returns Object containing the text and level of the active heading
+     */
     getActiveHeading(): { text: string; level: number } {
         return {
             text: this.activeHeading.text,
@@ -100,6 +153,12 @@ class Heading {
         };
     }
 
+    /**
+     * Generates a string representation of the heading hierarchy.
+     * Each level is indented to show the hierarchical structure.
+     * @param indent The indentation string to use (default: '')
+     * @returns A formatted string showing the heading hierarchy
+     */
     toString(indent: string = ''): string {
         let result = `${indent}Level ${this.level}: ${this.text}\n`;
         for (const child of this.children) {
@@ -108,6 +167,11 @@ class Heading {
         return result;
     }
 
+    /**
+     * Converts the heading hierarchy into a plain object structure.
+     * Useful for serialization or data transfer.
+     * @returns An object representing the heading and its children
+     */
     toStructure(): any {
         return {
             text: this.text,
@@ -117,6 +181,16 @@ class Heading {
     }
 }
 
+/**
+ * Test function that demonstrates and validates the heading hierarchy functionality.
+ * Tests various scenarios including:
+ * - Basic hierarchy construction
+ * - Adding valid child headings
+ * - Adding sibling headings
+ * - Tree navigation
+ * - Error cases
+ * - Complex tree operations
+ */
 function testHeadingHierarchy(): void {
     try {
         console.log("Test 1: Basic Hierarchy Construction");

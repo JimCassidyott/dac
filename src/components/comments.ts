@@ -1,9 +1,20 @@
+/**
+ * This module provides functionality for managing comments in DOCX files using the Office Open XML format.
+ * It allows adding comments to specific text and retrieving existing comments from DOCX documents.
+ */
 
 import * as JSZip from 'jszip';
 import { DOMParser, XMLSerializer } from 'xmldom';
 import * as fs from 'fs/promises';
 import { parseString, Builder } from 'xml2js';
 
+/**
+ * Adds a comment to a specific text in a DOCX file.
+ * @param docxFile - The path to the DOCX file
+ * @param targetText - The text to which the comment should be attached
+ * @param commentText - The content of the comment to add
+ * @throws Error if the target text is not found or if document.xml is missing
+ */
 async function addComment(docxFile: string, targetText: string, commentText: string): Promise<void> {
     const data = await fs.readFile(docxFile);
     const zip = await JSZip.loadAsync(data);
@@ -29,12 +40,9 @@ async function addComment(docxFile: string, targetText: string, commentText: str
         throw new Error(`Target text "${targetText}" not found in the document`);
     }
 
-    // Generate a new comment ID
-    const commentId = Date.now().toString();
-
-    // Insert comment reference
+    // Create the comment reference with the numeric ID
     const commentReference = doc.createElement('w:commentReference');
-    commentReference.setAttribute('w:id', commentId);
+    commentReference.setAttribute('w:id', getNextCommentId(doc));
     targetNode.parentNode?.appendChild(commentReference);
 
     // Add comment to comments.xml
@@ -46,18 +54,10 @@ async function addComment(docxFile: string, targetText: string, commentText: str
         commentsDoc = new DOMParser().parseFromString('<w:comments xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"/>', 'text/xml');
     }
 
-    const commentElement = commentsDoc.createElement('w:comment');
-    commentElement.setAttribute('w:id', commentId);
-    commentElement.setAttribute('w:author', 'Script');
-    commentElement.setAttribute('w:date', new Date().toISOString());
-    const commentTextElement = commentsDoc.createElement('w:p');
-    const commentRunElement = commentsDoc.createElement('w:r');
-    const commentTextNode = commentsDoc.createElement('w:t');
-    commentTextNode.textContent = commentText;
-    commentRunElement.appendChild(commentTextNode);
-    commentTextElement.appendChild(commentRunElement);
-    commentElement.appendChild(commentTextElement);
-    commentsDoc.documentElement.appendChild(commentElement);
+    // Use the new function to add the comment
+    // console.log("commentsDoc:", commentsDoc);
+    console.log("commentsDoc:", new XMLSerializer().serializeToString(commentsDoc));
+    console.log(typeof addCommentToCollection(commentsDoc, commentText));
 
     // Update the ZIP with modified XMLs
     zip.file('word/document.xml', new XMLSerializer().serializeToString(doc));
@@ -89,6 +89,61 @@ async function addComment(docxFile: string, targetText: string, commentText: str
     await fs.writeFile(docxFile, newDocxData);
 }
 
+/**
+ * Finds the highest comment ID in the comments document and returns the next available ID.
+ * @param commentsDoc - The XML document containing comments
+ * @returns The next available comment ID as a string
+ */
+function getNextCommentId(commentsDoc: Document): string {
+    const comments = commentsDoc.getElementsByTagName('w:comment');
+    let highestId = 0;
+
+    for (const comment of Array.from(comments)) {
+        const currentId = parseInt(comment.getAttribute('w:id') || '0', 10);
+        if (currentId > highestId) {
+            highestId = currentId;
+        }
+    }
+
+    return (highestId + 1).toString();
+}
+
+/**
+ * Creates and adds a new comment to a comments document.
+ * @param commentsDoc - The XML document containing comments
+ * @param commentText - The text content of the comment
+ * @param author - Optional author name. Defaults to 'Script'
+ * @returns The newly created comment element
+ */
+function addCommentToCollection(
+    commentsDoc: Document,
+    commentText: string,
+    author: string = 'Script'
+): Element {
+    const nextId = getNextCommentId(commentsDoc);
+    const commentElement = commentsDoc.createElement('w:comment');
+    commentElement.setAttribute('w:id', nextId);
+    commentElement.setAttribute('w:author', author);
+    commentElement.setAttribute('w:date', new Date().toISOString());
+
+    const commentTextElement = commentsDoc.createElement('w:p');
+    const commentRunElement = commentsDoc.createElement('w:r');
+    const commentTextNode = commentsDoc.createElement('w:t');
+    commentTextNode.textContent = commentText;
+
+    commentRunElement.appendChild(commentTextNode);
+    commentTextElement.appendChild(commentRunElement);
+    commentElement.appendChild(commentTextElement);
+    commentsDoc.documentElement.appendChild(commentElement);
+    console.log("commentElement:", commentElement);
+    return commentElement;
+}
+
+/**
+ * Retrieves all comments from a DOCX file.
+ * @param docxFile - The path to the DOCX file
+ * @returns An array of comment objects containing id and text
+ */
 async function getComments(docxFile: string): Promise<Array<{ id: string, text: string }>> {
     const data = await fs.readFile(docxFile);
     const zip = await JSZip.loadAsync(data);
@@ -112,15 +167,51 @@ async function getComments(docxFile: string): Promise<Array<{ id: string, text: 
     return comments;
 }
 
-const filePath = 'C:\\Users\\jimca\\Documents\\code\\csc\\dac\\demofiles\\accessible\\accessible.docx';
+/**
+ * Prints all paragraphs from a Word document XML content.
+ * Useful for debugging and viewing the document structure.
+ * @param xmlContent - The XML content from document.xml
+ */
+function printDocumentParagraphs(xmlContent: string) {
+    try {
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(xmlContent, 'text/xml');
 
+        // Get all paragraph elements
+        const paragraphs = xmlDoc.getElementsByTagName('w:p');
+
+        console.log('Document Paragraphs:');
+        for (let i = 0; i < paragraphs.length; i++) {
+            const paragraph = paragraphs[i];
+
+            // Create a new XMLSerializer to convert the paragraph back to string
+            const serializer = new XMLSerializer();
+            const paragraphXml = serializer.serializeToString(paragraph);
+
+            console.log(`\nParagraph ${i + 1}:`);
+            console.log(paragraphXml);
+        }
+    } catch (error) {
+        console.error('Error parsing document:', error);
+    }
+}
+
+/** Path to the demo DOCX file */
+const filePath = 'E:\\projects\\dac\\demo_files\\accessible\\accessible.docx';
+
+/**
+ * Main function that demonstrates the usage of comment manipulation functions.
+ * - Can add new comments (currently commented out)
+ * - Retrieves and displays existing comments
+ * - Prints document content for debugging purposes
+ */
 async function main() {
     try {
         // Add a new comment
-        // await addComment(filePath, 'Jim is a good guy', 'Yes he is');
-        // console.log('Comment added successfully');
+        await addComment(filePath, 'hero', 'Yes he is');
+        console.log('Comment added successfully');
 
-        // // Get and display all comments
+        // Get and display all comments
         const comments = await getComments(filePath);
         console.log('Comments:');
         if (comments.length === 0) {
@@ -135,9 +226,13 @@ async function main() {
         console.log('Content of document.xml:');
         console.log(documentXml);
 
+        // printDocumentParagraphs(documentXml);
+
     } catch (error) {
         console.error('Error:', error);
     }
 }
+
+// @ai: Write a function that takes a document.xml and iterates through all the paragraphs printing them to the screen as XML
 
 main();
