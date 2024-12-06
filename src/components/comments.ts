@@ -368,7 +368,7 @@ function printDocumentParagraphs(xmlContent: string) {
 }
 
 /** Path to the demo DOCX file */
-const filePath = 'E:\\projects\\dac\\demo_files\\accessible\\accessible.docx';
+const filePath = 'D:\\projects\\dac\\demo_files\\accessible\\accessible.docx';
 
 /**
  * Main function that demonstrates the usage of comment manipulation functions.
@@ -381,6 +381,9 @@ async function main() {
 
         // Add a new comment
         await addComment(filePath, 'hero', 'Yes he is');
+        console.log('Comment added successfully');
+
+        await addComment(filePath, 'Jim', 'Yes Jim is');
         console.log('Comment added successfully');
 
         // Get and display all comments
