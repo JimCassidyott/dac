@@ -104,26 +104,6 @@ export class MSWordComments {
             throw new Error(`Target text "${targetText}" not found in the document`);
         }
 
-        // Create the comment reference with the numeric ID
-        const commentId = this.getNextCommentId(doc);
-
-        // Create comment range start
-        const commentRangeStart = doc.createElement('w:commentRangeStart');
-        commentRangeStart.setAttribute('w:id', commentId);
-        targetParagraph.insertBefore(commentRangeStart, targetRunElement);
-
-        // Create comment range end
-        const commentRangeEnd = doc.createElement('w:commentRangeEnd');
-        commentRangeEnd.setAttribute('w:id', commentId);
-        targetParagraph.insertBefore(commentRangeEnd, targetRunElement.nextSibling);
-
-        // Create the comment reference
-        const commentReference = doc.createElement('w:commentReference');
-        commentReference.setAttribute('w:id', commentId);
-        const commentRun = doc.createElement('w:r');
-        commentRun.appendChild(commentReference);
-        targetParagraph.insertBefore(commentRun, commentRangeEnd.nextSibling);
-
         // Add comment to comments.xml
         let commentsDoc: Document;
         const commentsXml = await zip.file('word/comments.xml')?.async('text');
@@ -150,6 +130,27 @@ export class MSWordComments {
                 'text/xml'
             );
         }
+
+        // Create the comment reference with the numeric ID
+        const commentId = this.getNextCommentId(commentsDoc);  // use commentsDoc instead of doc bc commentsDoc has the correct comment ids
+
+        // Create comment range start
+        const commentRangeStart = doc.createElement('w:commentRangeStart');
+        commentRangeStart.setAttribute('w:id', commentId);
+        targetParagraph.insertBefore(commentRangeStart, targetRunElement);
+
+        // Create comment range end
+        const commentRangeEnd = doc.createElement('w:commentRangeEnd');
+        commentRangeEnd.setAttribute('w:id', commentId);
+        targetParagraph.insertBefore(commentRangeEnd, targetRunElement.nextSibling);
+
+        // Create the comment reference
+        const commentReference = doc.createElement('w:commentReference');
+        commentReference.setAttribute('w:id', commentId);
+        const commentRun = doc.createElement('w:r');
+        commentRun.appendChild(commentReference);
+        targetParagraph.insertBefore(commentRun, commentRangeEnd.nextSibling);
+
 
         // Use the helper method to add the comment
         const newComment = this.addCommentToCollection(commentsDoc, commentText);
@@ -374,17 +375,17 @@ export class MSWordComments {
 
 // Example usage and tests
 async function test() {
-    const filePath = 'D:\\projects\\dac\\demo_files\\accessible\\accessible.docx';
+    const filePath = 'demo_files/accessible/myfile.docx';
     const commenter = new MSWordComments();
 
     try {
         // Example 1: Add a comment to specific text
         console.log('Testing: Adding a comment...');
-        await commenter.addComment(filePath, 'hero', ' a test comment from MSWordComments');
+        await commenter.addComment(filePath, '"Come on, Boomer, you can do it! You can do it, old man!"', ' a test comment from MSWordComments');
         console.log('✓ Comment added successfully\n');
 
         console.log('Testing: Adding a jimcomment...');
-        await commenter.addComment(filePath, 'Jim', 'JIM a test comment from MSWordComments');
+        await commenter.addComment(filePath, 'I liked that man.', 'JIM a test comment from MSWordComments');
         console.log('✓ Comment added successfully\n');
         // Example 2: Get all comments from the document
         console.log('Testing: Retrieving all comments...');
@@ -398,8 +399,8 @@ async function test() {
         // Example 3: Add multiple comments
         console.log('Testing: Adding multiple comments...');
         const textsToComment = [
-            { target: 'hero', comment: 'Another comment about the hero' },
-            { target: 'Yes', comment: 'Commenting Yes' }
+            { target: 'NFL football player', comment: 'Another comment about the hero' },
+            { target: 'wardrobe and demeanor', comment: 'Commenting Yes' }
         ];
 
         for (const item of textsToComment) {
