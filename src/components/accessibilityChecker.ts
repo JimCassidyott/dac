@@ -6,8 +6,9 @@ import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as pa11y from 'pa11y';
 import * as JSZip from 'jszip';
-import { create } from 'xmlbuilder2';
 import { GCDocsAdapter } from './GCDocsAdaptor';
+const cheerio = require('cheerio');
+import { MSWordComments } from '../components/MSWordComments';
 
 const errorCodesToIgnore = [
     'WCAG2AAA.Principle3.Guideline3_1.3_1_1.H57.3.Lang',
@@ -401,6 +402,16 @@ export async function testAccessiblity(filePath: string, fileSource: string): Pr
         // Use pa11y to check the HTML file for accessibility issues
         const results = await pa11y(outputFilePath, pa11yOptions as any)
         const filteredResults = results.issues.filter(issue => !errorCodesToIgnore.includes(issue.code));
+        for (let i = 0; i < filteredResults.length; i++) {
+          const issue = filteredResults[i];
+          const htmlContext = issue.context;
+
+          // Parse the context using cheerio to extract text content
+          const $ = cheerio.load(htmlContext);
+          const targetText = $(htmlContext).text();
+          const msWordComments = new MSWordComments();
+          await msWordComments.addComment(filePath, targetText, `${issue.code} \n${issue.message}`);
+        }
 
         let fileIsAccessible = filteredResults.length === 0;
         return {filePath, fileIsAccessible};
