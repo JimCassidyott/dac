@@ -1,6 +1,7 @@
 import * as JSZip from 'jszip';
-import { DOMParser } from 'xmldom';
+import { DOMParser, XMLSerializer } from 'xmldom';
 import * as fs from 'fs';
+import { join } from 'path';
 
 export interface PowerPointComment {
     author: string;
@@ -115,12 +116,122 @@ export class PPTComments {
             throw error;
         }
     }
+
+    static async addComment(
+      filePath: string,
+      slideNumber: number,
+      comment: { author: string; text: string; x: number; y: number; date?: string }
+  ): Promise<void> {
+      const content = fs.readFileSync(filePath);
+      const zip = new JSZip();
+  
+      try {
+          // Load the PowerPoint file as a zip
+          const zipContent = await zip.loadAsync(content);
+  
+          // Ensure `commentAuthors.xml` exists and add the author if necessary
+          if (!zipContent.files['ppt/commentAuthors.xml']) {
+              zipContent.file(
+                  'ppt/commentAuthors.xml',
+                  `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+                  <p:commentAuthors xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"/>`
+              );
+          }
+          const authorsXml = await zipContent.files['ppt/commentAuthors.xml'].async('text');
+          const authorParser = new DOMParser();
+          const authorsDoc = authorParser.parseFromString(authorsXml, 'text/xml');
+          const authorElements = authorsDoc.getElementsByTagName('p:cmAuthor');
+          let authorId = Array.from(authorElements).find(
+              (el) => el.getAttribute('name') === comment.author
+          )?.getAttribute('id');
+  
+          if (!authorId) {
+              // Add a new author
+              authorId = String(authorElements.length);
+              const newAuthor = authorsDoc.createElement('p:cmAuthor');
+              newAuthor.setAttribute('id', authorId);
+              newAuthor.setAttribute('name', comment.author);
+              authorsDoc.documentElement.appendChild(newAuthor);
+  
+              // Update the file
+              const serializer = new XMLSerializer();
+              const updatedAuthorsXml = serializer.serializeToString(authorsDoc);
+              zipContent.file('ppt/commentAuthors.xml', updatedAuthorsXml);
+          }
+  
+          // Map slide number to the corresponding slideId
+          const slideMap = new Map<number, string>(); // Maps slide numbers to slide IDs
+          if (zipContent.files['ppt/presentation.xml']) {
+              const presentationXml = await zipContent.files['ppt/presentation.xml'].async('text');
+              const parser = new DOMParser();
+              const presentationDoc = parser.parseFromString(presentationXml, 'text/xml');
+              const slideList = presentationDoc.getElementsByTagName('p:sldId');
+  
+              for (let i = 0; i < slideList.length; i++) {
+                  const slide = slideList[i];
+                  const slideId = slide.getAttribute('id');
+                  if (slideId) {
+                      slideMap.set(i + 1, slideId); // 1-based slide numbering
+                  }
+              }
+          }
+  
+          const slideId = slideMap.get(slideNumber);
+          if (!slideId) {
+              throw new Error(`Invalid slide number: ${slideNumber}`);
+          }
+  
+          // Ensure a `comments/comment*.xml` file exists for the slide
+          const commentFileName = `ppt/comments/comment${slideNumber}.xml`;
+          if (!zipContent.files[commentFileName]) {
+              zipContent.file(
+                  commentFileName,
+                  `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+                  <p:cmLst xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"/>`
+              );
+          }
+  
+          const commentXml = await zipContent.files[commentFileName].async('text');
+          const commentParser = new DOMParser();
+          const commentsDoc = commentParser.parseFromString(commentXml, 'text/xml');
+  
+          // Add the comment
+          const newComment = commentsDoc.createElement('p:cm');
+          newComment.setAttribute('authorId', authorId);
+          newComment.setAttribute('dt', comment.date || new Date().toISOString());
+  
+          const posElement = commentsDoc.createElement('p:pos');
+          posElement.setAttribute('x', comment.x.toString());
+          posElement.setAttribute('y', comment.y.toString());
+          posElement.setAttribute('slideId', slideId); // Ensure it references the correct slide ID
+          newComment.appendChild(posElement);
+  
+          const textElement = commentsDoc.createElement('p:text');
+          textElement.textContent = comment.text;
+          newComment.appendChild(textElement);
+  
+          commentsDoc.documentElement.appendChild(newComment);
+  
+          // Update the file
+          const serializer = new XMLSerializer();
+          const updatedCommentsXml = serializer.serializeToString(commentsDoc);
+          zipContent.file(commentFileName, updatedCommentsXml);
+  
+          // Save the updated `.pptx`
+          const updatedContent = await zipContent.generateAsync({ type: 'nodebuffer' });
+          fs.writeFileSync(filePath, updatedContent);
+      } catch (error) {
+          console.error('Error adding comment to PowerPoint file:', error);
+          throw error;
+      }
+  }
+  
 }
 
 // Example usage:
 async function main() {
     try {
-        const comments = await PPTComments.getComments('versioning.Pptx');
+        const comments = await PPTComments.getComments(join(__dirname, 'Versioning.pptx'));
         console.log('PowerPoint Comments:');
         console.log(comments);
         comments.forEach((comment, index) => {
@@ -131,6 +242,15 @@ async function main() {
             console.log(`Slide: ${comment.slideNumber}`);
             console.log(`Position: (${comment.position.x}, ${comment.position.y})`);
         });
+
+        await PPTComments.addComment(join(__dirname, 'Versioning.pptx'), 2, {
+          author: 'Thor',
+          text: 'adding comment test',
+          x: 0, // Position in EMUs
+          y: 0,
+          date: '2024-01-01T15:00:00Z',
+        });
+      console.log('Comment added to slide 2.');
     } catch (error) {
         console.error('Failed to read comments:', error);
     }

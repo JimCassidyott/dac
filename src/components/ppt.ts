@@ -30,7 +30,7 @@ async function printPowerPointXML(filePath: string) {
 // Example usage
 async function main() {
     // Specify the path to your PowerPoint file
-    const pptxFilePath = join(__dirname, 'versioning.pptx');
+    const pptxFilePath = join(__dirname, 'Versioning.pptx');
     console.log('Opening PowerPoint file:', pptxFilePath);
     
     try {
