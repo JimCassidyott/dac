@@ -1,10 +1,41 @@
 /**
- * Custom error class for handling heading-related errors in the document hierarchy.
+ * Enum representing possible error codes for HeadingError.
  */
-class HeadingError extends Error {
-    constructor(message: string) {
+export enum HeadingErrorCode {
+    /**
+     * Error code 1001: Indicates an invalid heading level. Level must be 1 or greater.
+     */
+    INVALID_HEADING_LEVEL = 1001,
+
+    /**
+     * Error code 1002: Indicates invalid first heading. First heading in the document must be level 1.
+     */
+    INVALID_FIRST_HEADING_LEVEL = 1002,
+
+    /**
+     * Error code 1003: Indicates that another another level 1 heading cannot be added.
+     */
+    CANNOT_ADD_ANOTHER_LEVEL_1 = 1003,
+
+    /**
+     * Error code 1004: Indicates that current heading level cannot be added at any valid position in hierarchy.
+     */
+    NO_VALID_POSITION = 1004
+}
+
+/**
+ * Custom error class for handling heading-related errors in the document hierarchy.
+ * @param message - A description of the error.
+ * @param errorCode - A numeric code representing the specific error type.
+ *        errorCode 01: `Invalid heading level: ${level}. Level must be 1 or greater.`
+ */
+export class HeadingError extends Error {
+    errorCode: HeadingErrorCode;
+
+    constructor(message: string, code: HeadingErrorCode) {
         super(message);
         this.name = 'HeadingError';
+        this.errorCode = code;
     }
 }
 
@@ -13,7 +44,7 @@ class HeadingError extends Error {
  * Manages a tree structure where each heading can have child headings of deeper levels.
  * For example, an H1 can have H2 children, H2 can have H3 children, etc.
  */
-class Heading {
+export class Heading {
     /** The text content of the heading */
     private text: string;
     /** The heading level (1 for H1, 2 for H2, etc.) */
@@ -53,7 +84,7 @@ class Heading {
      */
     private validateLevel(level: number): void {
         if (level < 1) {
-            throw new HeadingError(`Invalid heading level: ${level}. Level must be 1 or greater.`);
+            throw new HeadingError(`Invalid heading level: ${level}. Level must be 1 or greater.`, HeadingErrorCode.INVALID_HEADING_LEVEL);
         }
     }
 
@@ -75,7 +106,7 @@ class Heading {
         // Handle empty document case
         if (!this.root) {
             if (level !== 1) {
-                throw new HeadingError('First heading in the document must be level 1');
+                throw new HeadingError('First heading in the document must be level 1', HeadingErrorCode.INVALID_FIRST_HEADING_LEVEL);
             }
             this.text = text;
             this.level = level;
@@ -86,7 +117,7 @@ class Heading {
 
         // Prevent multiple level 1 headings
         if (level === 1) {
-            throw new HeadingError('Cannot add another level 1 heading');
+            throw new HeadingError('Cannot add another level 1 heading', HeadingErrorCode.CANNOT_ADD_ANOTHER_LEVEL_1);
         }
 
         // Create the new heading
@@ -96,7 +127,8 @@ class Heading {
         // Try to add the heading starting from active heading and moving up
         if (!this.tryAddHeadingToHierarchy(newHeading)) {
             throw new HeadingError(
-                `Cannot add heading level ${level} at any valid position in hierarchy`
+                `Cannot add heading level ${level} at any valid position in hierarchy`,
+                HeadingErrorCode.NO_VALID_POSITION
             );
         }
     }
@@ -289,4 +321,9 @@ function testHeadingHierarchy(): void {
 }
 
 // Run all tests
-testHeadingHierarchy();
+// testHeadingHierarchy();
+
+// Run the tests if this file is executed directly
+if (require.main === module) {
+  testHeadingHierarchy();
+}

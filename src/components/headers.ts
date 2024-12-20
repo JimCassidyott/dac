@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as JSZip from 'jszip';
 import { DOMParser } from 'xmldom';
 import { XMLSerializer } from 'xmldom';
+import { Heading } from './headers2';
 
 interface Header {
     level: number;
@@ -73,6 +74,28 @@ async function extractDocxHeaders(filePath: string): Promise<Header[]> {
     }
 }
 
+export async function testHeadings(filePath: string) {
+  try{
+    const headers = await extractDocxHeaders(filePath);
+    let headings: Heading = null;
+    headers.forEach(async header => {
+      if (headings === null) {
+        headings = new Heading(header.text, header.level);
+      }
+      else {
+        await headings.addHeading(header.text, header.level);
+      }
+      // console.log(`Level ${header.level}: ${header.text}`);
+    });
+  }
+  catch (error) {
+    throw error;
+    // console.error('Error testing Headings', error);
+  }
+}
+ 
+// testHeadings();
+
 // Example usage
 async function main() {
     try {
@@ -106,4 +129,9 @@ async function main() {
 //     }    
 // }
 
-main(); 
+// main(); 
+
+// Run the tests if this file is executed directly
+if (require.main === module) {
+  main();
+}

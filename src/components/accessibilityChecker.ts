@@ -9,6 +9,8 @@ import * as JSZip from 'jszip';
 import { GCDocsAdapter } from './GCDocsAdaptor';
 const cheerio = require('cheerio');
 import { MSWordComments } from '../components/MSWordComments';
+import { Heading, HeadingError, HeadingErrorCode } from './headers2';
+import { testHeadings } from './headers';
 
 const errorCodesToIgnore = [
     'WCAG2AAA.Principle3.Guideline3_1.3_1_1.H57.3.Lang',
@@ -414,12 +416,32 @@ export async function testAccessiblity(filePath: string, fileSource: string): Pr
         }
 
         let fileIsAccessible = filteredResults.length === 0;
+        let headingErrors = await testHeadings(filePath);
         return {filePath, fileIsAccessible};
     } catch (error) {
+        // Check if error is related to headers and add a comment
+        const msWordComments = new MSWordComments();
+
+        if (error instanceof HeadingError) {
+            const headerIssueMessage = `Error Code ${error.errorCode}: ${error.message}`;
+            await msWordComments.addComment(
+                filePath,
+                'Header Issue Detected', // Target location placeholder
+                headerIssueMessage
+            );
+            console.log(`Added comment for header issue: ${headerIssueMessage}`);
+        } else {
+            console.error('An unexpected error occurred:', error);
+        }
         console.error(`Error during conversion or accessibility check: ${error.message}`);
         throw error;
     }
 }
+
+
+
+
+
 // async function exampleUsage() {
 //     const filePath = 'C:\\Users\\jimca\\Documents\\x\\jim.docx';
 //     const isAccessible = true; // or false, depending on the desired value
