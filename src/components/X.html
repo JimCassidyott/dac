@@ -1,0 +1,97 @@
+<div class="slide">
+    <p>CSC: API Versioning Strategy</p>
+    <p>Managing Versions In Azure</p>
+</div>
+<div class="slide">
+    <p>CSS API Versioning Strategy</p>
+    <p>Semantic Versioning:</p>
+    <p>Government of Canada Standards on APIs</p>
+    <p>Every change to an API, no matter how small, should be indicated by a new version. Follow the v</p>
+    <p>&lt;</p>
+    <p>Major</p>
+    <p>&gt;.&lt;</p>
+    <p>Minor</p>
+    <p>&gt;.&lt;</p>
+    <p>Patch</p>
+    <p>&gt;</p>
+    <p>versioning structure whereby:</p>
+    <p>Major</p>
+    <p>= Significant release which is likely to break backwards compatibility</p>
+    <p>Minor</p>
+    <p>= Addition of optional attributes or new functionality that is backwards compatible, but should be tested  (New endpoints to an API)</p>
+    <p>Patch</p>
+    <p>= Internal fix which should not impact the schema and/or contract of the API</p>
+    <p>.</p>
+    <p>Note: 	This is the guidance from GOC.</p>
+    <p>If it is easy &amp; feasible, we should comply. Right? (This presentation makes the case that it is feasible.)</p>
+</div>
+<div class="slide">
+    <p>Code</p>
+    <p>The code of the API changes to fix bug or optimize the service.</p>
+    <p>Swagger File</p>
+    <p>The Swagger file does NOT change, but the version updates.</p>
+    <p>APIM</p>
+    <p>Update version to 1.0.1 – redirect from 1.0.0 to 1.0.1</p>
+    <p>Client Code</p>
+    <p>The change is seamless, but we notify the client anyway.</p>
+    <p>Communication</p>
+    <p>Notify clients and publish release notes with change log. Send links to support page with form for issues etc.</p>
+    <p>Goals</p>
+    <p>All changes must be noted with releases notes that have a change log, and by incrementing the version identifier.</p>
+    <p>Users of an API need to know that a change has occurred.</p>
+    <p>Bugs and issues should be logged in relation to the version to help diagnose cause.</p>
+    <p>Users of an API do not need to make any changes to existing code or configuration.</p>
+    <p>Note</p>
+    <p>Why not store the current version in the Key Vault? We could force an update without anyone having to do anything? The version could be inserted into the API URL by the code.</p>
+    <p>CSS API Versioning Strategy</p>
+    <p>Semantic Versioning: Managing a Patch (1.0.0)</p>
+</div>
+<div class="slide">
+    <p>Code</p>
+    <p>The code of the API changes to add new API endpoints, but old endpoints do not change.</p>
+    <p>Swagger File</p>
+    <p>The Swagger file changes to add new endpoints, old endpoints do not change, and the version updates.</p>
+    <p>APIM</p>
+    <p>Update version to 1.0.1 – redirect from 1.0.0 to 1.0.1. (Or, use Key Vault?)</p>
+    <p>Client Code</p>
+    <p>The change is seamless, but we notify the client anyway. The client now has new endpoints to call (optional).</p>
+    <p>Communication</p>
+    <p>Notify clients and public release notes with change log. Update mocks, and docs. Send links to support and issues form.</p>
+    <p>Goals</p>
+    <p>All changes must be noted with a change log and a new version.</p>
+    <p>Users of an API need to know that a change has occurred, and have the option of using the new endpoints.</p>
+    <p>Users of an API do not need to make any changes to existing code.</p>
+    <p>CSS API Versioning Strategy</p>
+    <p>Semantic Versioning: Managing a Minor Change (1.0.1)</p>
+</div>
+<div class="slide">
+    <p>CSS API Versioning Strategy</p>
+    <p>Semantic Versioning: Managing a Major Change</p>
+    <p>Code</p>
+    <p>The code of the API changes to fix bug or optimize the service.</p>
+    <p>Swagger File</p>
+    <p>The Swagger file does NOT change, but the version updates.</p>
+    <p>APIM</p>
+    <p>Update version to 1.0.1 – redirect from 1.0.0 to 1.0.1</p>
+    <p>Client Code</p>
+    <p>The change is seamless, but we notify the client anyway.</p>
+    <p>Communication</p>
+    <p>Notify clients and public release notes with change log.</p>
+    <p>Goals</p>
+    <p>All changes must be notes with a change log and a new version.</p>
+    <p>Users of an API need to know that a change has occurred.</p>
+    <p>Bugs and issues are logged in relation to the version to help diagnose cause.</p>
+    <p>Users of an API do not need to make any changes to existing code.</p>
+</div>
+<div class="slide">
+    <p>CSC API Environments</p>
+</div>
+<div class="slide">
+    <p>CSS NPM Strategy</p>
+    <p>Discussion &amp; Decisions</p>
+    <p>Do we agree that we should support experimentation in development, but encourage stability in production?</p>
+    <p>Do we agree that we should manage a private repository of approved, reviewed and tested dependencies for production code?</p>
+    <p>Do we all agree with the choice of Azure Artifacts?</p>
+    <p>Do we agree to support three environments as described in the diagram?</p>
+    <p>Other issues?</p>
+</div>
