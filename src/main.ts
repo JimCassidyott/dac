@@ -7,9 +7,10 @@ import { changeIsAccessibleProperty, isAccessible, testAccessiblity } from "./co
 import ProgressBar = require('electron-progressbar');
 import { GCDocsAdapter } from './components/GCDocsAdaptor';
 
+let mainWindow: Electron.BrowserWindow = null;
 function createWindow() {
   // Create the browser window.
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     height: 600,
     webPreferences: {
       preload: pathModule.join(__dirname, "preload.js"),
@@ -36,25 +37,31 @@ function createWindow() {
         let runAccessibilityTest = new MenuItem(
           {
             label: 'Run accessibility test',
+            // click: async () => {
+            //   let progressBar = createProgressBar(`Test documents in ${arg.path.split('/').pop()  || arg.path}`, 
+            //   'Calculating number of documents...');
+            //   let res = await testFolder(arg.path, progressBar);
+            //   if (res.numfiles == 0) {
+            //     mainWindow.webContents.send("context-menu-action", {
+            //       action: 'run-folder-accessibility-test',
+            //       path: arg.path,
+            //       testStatus: "noDocuments"
+            //     });
+            //   }
+            //   else {
+            //     mainWindow.webContents.send("context-menu-action", {
+            //       action: 'run-folder-accessibility-test',
+            //       path: arg.path,
+            //       testStatus: "completed",
+            //       results: res.results
+            //     });
+            //   }
+            // }
             click: async () => {
-              let progressBar = createProgressBar(`Test documents in ${arg.path.split('/').pop()  || arg.path}`, 
-              'Calculating number of documents...');
-              let res = await testFolder(arg.path, progressBar);
-              if (res.numfiles == 0) {
-                mainWindow.webContents.send("context-menu-action", {
-                  action: 'run-folder-accessibility-test',
-                  path: arg.path,
-                  testStatus: "noDocuments"
-                });
-              }
-              else {
-                mainWindow.webContents.send("context-menu-action", {
-                  action: 'run-folder-accessibility-test',
-                  path: arg.path,
-                  testStatus: "completed",
-                  results: res.results
-                });
-              }
+              mainWindow.webContents.send('context-menu-action', {
+                action: "get-testing-file-type",
+                path: arg.path,
+              });              
             }
           }
         );
@@ -334,37 +341,46 @@ async function testFile(path: string): Promise<boolean> {
   }
 }
 
-async function testFolder(path: string, progressBar: ProgressBar) {
+async function testFolder(path: string, progressBar: ProgressBar, fileTypes: string[]) {
   let adaptor = await getFileSystemAdapter();
-  let documents = await adaptor.listDocxFiles(path);
   let testResults = {
-    numfiles: documents.length,
+    numfiles: 0,
     results: [] as { path: string; success: boolean; passed: boolean | null }[]
   };
-  if (documents.length == 0) {
-    updateProgressBarValue(progressBar, 100);
-    return testResults;
-  }
-  for (let i = 0; i < documents.length; i++) {
-    progressBar.detail = `Testing file ${i+1} out of ${documents.length}...`;
-    updateProgressBarValue(progressBar, ((1/documents.length) * 100));
-    let normalizedPath = pathModule.normalize(documents[i]).replace(/\\/g, '/');
-    try{
-      let accessibilityStatus = await testFile(documents[i]);
-      testResults.results.push({
-        path: normalizedPath,
-        success: true,  // The test ran successfully
-        passed: accessibilityStatus  // Assuming testFile returns true if passed
-      });
-      
+  fileTypes.map(item => {
+    console.log(item);
+  });
+
+  if (fileTypes.includes("word")) {
+    let documents = await adaptor.listDocxFiles(path);
+    testResults.numfiles = documents.length;
+    console.log("here");
+    
+    if (documents.length == 0) {
+      updateProgressBarValue(progressBar, 100);
+      return testResults;
     }
-    catch(error){
-      console.log(error);
-      testResults.results.push({
-        path: normalizedPath,
-        success: false,  // The test failed to run
-        passed: false  // Indicate that the test result is unknown due to failure
-      });
+    for (let i = 0; i < documents.length; i++) {
+      progressBar.detail = `Testing file ${i+1} out of ${documents.length}...`;
+      updateProgressBarValue(progressBar, ((1/documents.length) * 100));
+      let normalizedPath = pathModule.normalize(documents[i]).replace(/\\/g, '/');
+      try{
+        let accessibilityStatus = await testFile(documents[i]);
+        testResults.results.push({
+          path: normalizedPath,
+          success: true,  // The test ran successfully
+          passed: accessibilityStatus  // Assuming testFile returns true if passed
+        });
+        
+      }
+      catch(error){
+        console.log(error);
+        testResults.results.push({
+          path: normalizedPath,
+          success: false,  // The test failed to run
+          passed: false  // Indicate that the test result is unknown due to failure
+        });
+      }
     }
   }
   updateProgressBarValue(progressBar, 100);
@@ -412,3 +428,28 @@ function getGCdocsUrl() {
 
   inputWindow.loadFile(pathModule.join(__dirname, "../getGCdocsUrlDialog.html")); // Create an HTML file for the form
 }
+
+ipcMain.on('start-folder-accessibility-test', async (event, data: {path: string, selectedTypes: string[]}) => {
+  const {path, selectedTypes} = data;
+
+  console.log(path);
+
+  let progressBar = createProgressBar(`Test documents in ${path.split('/').pop()  || path}`, 
+  'Calculating number of documents...');
+  let res = await testFolder(path, progressBar, selectedTypes);
+  if (res.numfiles == 0) {
+    mainWindow.webContents.send("context-menu-action", {
+      action: 'run-folder-accessibility-test',
+      path: path,
+      testStatus: "noDocuments"
+    });
+  }
+  else {
+    mainWindow.webContents.send("context-menu-action", {
+      action: 'run-folder-accessibility-test',
+      path: path,
+      testStatus: "completed",
+      results: res.results
+    });
+  }
+})

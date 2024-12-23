@@ -122,6 +122,9 @@ window.electronAPI.receive('context-menu-action', (data) => {
   else if (data.action == "run-folder-accessibility-test") {
     recieveFolderTestResults(data);
   }
+  else if (data.action == "get-testing-file-type") {
+    recieveGetTestingFileType(data);
+  }
 });
 
 window.electronAPI.receive('top-menu-action', (data) => {  
@@ -301,3 +304,63 @@ function recieveFolderTestResults(data: any) {
 }
 
 ShowFolderContents();
+
+function recieveGetTestingFileType(data: any) {
+  // Remove existing popup if present
+  const existingPopup = document.getElementById('file-type-popup');
+  if (existingPopup) existingPopup.remove();
+  let rightPanel = document.getElementById("right-panel");
+  rightPanel.innerHTML = "";
+
+  // Create Popup
+  const popup = document.createElement('div');
+  popup.id = 'file-type-popup';
+
+  popup.innerHTML = `
+  <div class="card shadow-lg border rounded-3">
+    <div class="card-body">
+      <h2 class="card-title mb-4">Select the File Types You Would Like to Test</h2>
+      <form id="file-type-form">
+        <div class="mb-3 form-check">
+          <input type="checkbox" class="form-check-input" value="word" id="wordCheckBox">
+          <label class="form-check-label" for="wordCheckBox">Word Documents (.docx)</label>
+        </div>
+        <div class="mb-3 form-check">
+          <input type="checkbox" class="form-check-input" value="powerpoint" id="powerPointCheckBox">
+          <label class="form-check-label" for="powerPointCheckBox">PowerPoint Documents (.pptx)</label>
+        </div>
+        <div class="mb-3 form-check">
+          <input type="checkbox" class="form-check-input" value="pdf" id="pdfCheckBox">
+          <label class="form-check-label" for="pdfCheckBox">PDF Documents (.pdf)</label>
+        </div>
+        <div class="d-grid gap-2 d-md-block">
+          <button type="button" id="start-folder-test" class="btn btn-primary px-4">Submit</button>
+          <button type="button" id="close-popup" class="btn btn-secondary px-4">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+`;
+
+  rightPanel.appendChild(popup);
+
+  // Close Button Event
+  document.getElementById('close-popup')?.addEventListener('click', () => {
+    popup.remove();
+  });
+
+  // Start Test Button Event
+  document.getElementById('start-folder-test')?.addEventListener('click', () => {
+    const selectedTypes = Array.from(
+      document.querySelectorAll('#file-type-form input[type="checkbox"]:checked')
+    ).map((input) => (input as HTMLInputElement).value);
+
+    if (selectedTypes.length === 0) {
+      alert('Please select at least one file type.');
+      return;
+    }
+    console.log(selectedTypes);
+    window.electron.ipcRenderer.send('start-folder-accessibility-test', { path: data.path, selectedTypes });
+    popup.remove();
+  });
+}

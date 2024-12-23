@@ -9,8 +9,8 @@ import * as JSZip from 'jszip';
 import { GCDocsAdapter } from './GCDocsAdaptor';
 const cheerio = require('cheerio');
 import { MSWordComments } from '../components/MSWordComments';
-import { Heading, HeadingError, HeadingErrorCode } from './headers2';
-import { testHeadings } from './headers';
+import { Heading, HeadingError, HeadingErrorCode } from './Headings';
+import { testHeadings } from './MSWordHeaders';
 
 const errorCodesToIgnore = [
     'WCAG2AAA.Principle3.Guideline3_1.3_1_1.H57.3.Lang',
