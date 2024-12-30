@@ -11,6 +11,8 @@ const cheerio = require('cheerio');
 import { MSWordComments } from '../components/MSWordComments';
 import { Heading, HeadingError, HeadingErrorCode } from './Headings';
 import { testHeadings } from './MSWordHeaders';
+import { fileTypeFromFile } from 'file-type';
+import { isWordDOC } from './helpers';
 
 const errorCodesToIgnore = [
     'WCAG2AAA.Principle3.Guideline3_1.3_1_1.H57.3.Lang',
@@ -97,27 +99,12 @@ export async function isAccessible(filePath: string): Promise<boolean> {
 }
 
 /**
- * Asynchronously checks if a file is a Word document (.docx) by verifying its file extension.
- *
- * @param {string} filePath The path to the file to be checked.
- * @return {Promise<boolean>} A Promise that resolves to a boolean indicating whether the file is a Word document.
- */
-export async function isWordDOC(filePath: string): Promise<boolean> {
-    const fileExtension: string = path.extname(filePath).toLowerCase();
-    if (fileExtension !== '.docx') {
-        return false
-    }
-
-    return true; // Add a return statement here
-}
-
-/**
  * Reads the contents of a DOCX file and returns a JSZip object.
- * 
+ *
  * @param filePath - The path to the DOCX file.
  * @returns A promise that resolves to a JSZip object representing the contents of the DOCX file.
  * @throws Will throw an error if the file does not exist, if the file is not a valid DOCX file, or if there is an error reading the file.
- * 
+ *
  * @note This function assumes that the file exists and that it is a valid DOCX file.
  */
 async function readDocxFile(filePath: string): Promise<JSZip> {
@@ -127,7 +114,7 @@ async function readDocxFile(filePath: string): Promise<JSZip> {
     }
 
     // Check if the file is a valid DOCX file
-    if (!isValidDOCXFile(filePath)) {
+    if (!isWordDOC(filePath)) {
         throw new Error('The file is not a valid DOCX file');
     }
 
@@ -143,21 +130,9 @@ async function readDocxFile(filePath: string): Promise<JSZip> {
 }
 
 /**
- * Checks if the given file path is a .docx file.
- * 
- * @param {string} filePath - The path to the file to check.
- * @throws {Error} If the file is not a .docx file. (may become a more robust check later
- *                - including mime file type check)
- * @returns {boolean} True if the file is a .docx file, false otherwise.    
- * 
- */
-function isValidDOCXFile(filePath: string): boolean {
-    return path.extname(filePath).toLowerCase() === '.docx';
-}
-
-/* Creates a new collection of custom properties with one boolean property called isAccessible set to false.
+ * Creates a new collection of custom properties with one boolean property called isAccessible set to false.
  * Returns a properly formatted XML string representing the custom properties for a Word document.
- * 
+ *
  * @returns { string } An XML string representing a collection of custom properties with isAccessible set to false.
  */
 function createCustomPropertyCollectionWithIsAccessibleProperty(): string {
@@ -170,7 +145,7 @@ function createCustomPropertyCollectionWithIsAccessibleProperty(): string {
 /**
  * Opens a Word document, adds a custom property 'isAccessible' set to false while preserving existing properties,
  * and saves the document.
- * 
+ *
  * @param {string} filePath - The path to the .docx file.
  * @throws {Error} If the file is not a .docx file or if there's an error processing the file.
  */
@@ -287,7 +262,7 @@ async function ensureThedocPropsCustomXmlExists(fileName: string): Promise<void>
 
 /**
  * Updates the 'isAccessible' custom property in a Word document (.docx file)
- * 
+ *
  * @param {string} filePath - The path to the .docx file.
  * @returns {Promise<void>} A Promise that resolves when the update is complete.
  * @throws {Error} If the file is not a .docx file or if there's an error during the process.
@@ -312,7 +287,7 @@ export async function changeIsAccessibleProperty(filePath: string, isAccessible:
 
 /**
  * Updates the 'isAccessible' property in the given XML string based on the provided boolean value.
- * 
+ *
  * @param xmlString - The XML string representing the custom properties collection from a Word document.
  * @param isAccessible - A boolean flag indicating the value for the 'isAccessible' property.
  * @returns A promise that resolves to the updated XML string with the 'isAccessible' property set.
@@ -386,13 +361,13 @@ function convertDocxToHtml(inputFilePath: string, outputFilePath: string): void 
  * @return {Promise<{filePath: string, fileIsAccessible: boolean}>} A promise that resolves to an object containing a boolean indicating
  * whether the input file is accessible and a string indicating the path to the file that was tested.
  */
-export async function testAccessiblity(filePath: string, fileSource: string): Promise<{filePath: string, fileIsAccessible: boolean}> {
+export async function testAccessiblity(filePath: string, fileSource: string): Promise<{ filePath: string, fileIsAccessible: boolean }> {
     try {
         // Check if the input file exists
         if (fileSource === 'GCDOCS') {
             let adapter = new GCDocsAdapter();
             filePath = await adapter.downloadDocumentContent(filePath);
-            
+
         }
         if (!fs.existsSync(filePath)) {
             throw new Error(`Input file does not exist: ${filePath}`);
@@ -405,19 +380,19 @@ export async function testAccessiblity(filePath: string, fileSource: string): Pr
         const results = await pa11y(outputFilePath, pa11yOptions as any)
         const filteredResults = results.issues.filter(issue => !errorCodesToIgnore.includes(issue.code));
         for (let i = 0; i < filteredResults.length; i++) {
-          const issue = filteredResults[i];
-          const htmlContext = issue.context;
+            const issue = filteredResults[i];
+            const htmlContext = issue.context;
 
-          // Parse the context using cheerio to extract text content
-          const $ = cheerio.load(htmlContext);
-          const targetText = $(htmlContext).text();
-          const msWordComments = new MSWordComments();
-          await msWordComments.addComment(filePath, targetText, `${issue.code} \n${issue.message}`);
+            // Parse the context using cheerio to extract text content
+            const $ = cheerio.load(htmlContext);
+            const targetText = $(htmlContext).text();
+            const msWordComments = new MSWordComments();
+            await msWordComments.addComment(filePath, targetText, `${issue.code} \n${issue.message}`);
         }
 
         let fileIsAccessible = filteredResults.length === 0;
         let headingErrors = await testHeadings(filePath);
-        return {filePath, fileIsAccessible};
+        return { filePath, fileIsAccessible };
     } catch (error) {
         // Check if error is related to headers and add a comment
         const msWordComments = new MSWordComments();
