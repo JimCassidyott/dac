@@ -1,4 +1,5 @@
 import * as path from 'path';
+import { isWordDOC } from './helpers';
 
 // import { FileSystemReader } from './path/to/FileSystemReader';
 // import { SystemAdapter } from './path/to/SystemAdapter';
@@ -14,14 +15,13 @@ import * as path from 'path';
 //         console.error(err);
 //     });
 
-
 /**
- * Asynchronously checks if a file is a Word document (.docx) by verifying its file extension.
+ * Asynchronously checks if a file is a Word document (.docx).
+ * This is an alias for isWordDOC from helpers which performs both extension and MIME type validation.
  *
  * @param {string} filePath - The path to the file to be checked.
  * @returns {Promise<boolean>} - A Promise that resolves to a boolean indicating whether the file is a Word document.
  */
 export async function isWordDocument(filePath: string): Promise<boolean> {
-    const fileExtension: string = path.extname(filePath).toLowerCase();
-    return fileExtension === '.docx';
+    return isWordDOC(filePath);
 }
