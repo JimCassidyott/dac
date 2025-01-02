@@ -1,5 +1,5 @@
 import * as path from 'path';
-import { fileTypeFromFile } from 'file-type';
+// import { fileTypeFromFile } from 'file-type';
 
 /**
  * Asynchronously checks if a file is a Word document (.docx) by verifying its file extension and MIME type.
@@ -21,6 +21,7 @@ export async function isWordDOC(filePath: string): Promise<boolean> {
         // This checks the actual file content structure to ensure it's a valid Word document
         // The expected MIME type for Word documents is 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         // This test prevents false positives from files that are just renamed to .docx
+        const { fileTypeFromFile } = await import('file-type');
         const fileType = await fileTypeFromFile(filePath);
         return fileType?.mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
     } catch (error) {
