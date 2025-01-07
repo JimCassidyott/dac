@@ -5,6 +5,7 @@ import { IFileSystem } from '../Interfaces/IFileSystem';
 import { IFile } from '../Interfaces/iFile';
 import { IFolder } from '../Interfaces/iFolder';
 import { IFolderContents } from '../Interfaces/iFolderContents';
+import { AccessibilityStatus } from "../components/accessibilityChecker";
 
 /**
  * An implementation of the IFileSystem interface for interacting with the System file system.
@@ -107,7 +108,7 @@ export class SystemAdapter implements IFileSystem {
                         path: `${directoryPath}/${file.name}`, // Path of the file
                         size: "0", // Size in bytes or megabytes
                         mimeType: "", // MIME type of the file, optional
-                        isAccessible: false, // Accessibility property
+                        isAccessible: AccessibilityStatus.Untested, // Accessibility property
                         customProperties: {} // Custom properties
                     };
                 });

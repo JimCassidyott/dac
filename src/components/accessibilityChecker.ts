@@ -70,32 +70,38 @@ export async function readCustomPropertiesXml(filePath: string): Promise<any | u
     }
 }
 
+export enum AccessibilityStatus {
+  Accessible = "Accessible",
+  NotAccessible = "Not Accessible",
+  Untested = "Untested"
+}
+
 /**
  * Asynchronously checks the accessibility of a Word document by reading its custom properties XML.
  *
  * @param {string} filePath - The path to the Word document.
- * @return {Promise<boolean>} A Promise that resolves to a boolean indicating whether the document is accessible.
+ * @return {Promise<AccessibilityStatus>} A Promise that resolves to an AccessibilityStatus enum value.
  */
-export async function isAccessible(filePath: string): Promise<boolean> {
+export async function isAccessible(filePath: string): Promise<AccessibilityStatus> {
     // Read the custom properties XML
     const customProperties = await readCustomPropertiesXml(filePath);
     if (!customProperties || !customProperties.Properties || !customProperties.Properties.property) {
-        return false;
+        return AccessibilityStatus.Untested;
     }
 
-    let isAccessibleFlag: boolean = false;
-    if (customProperties && customProperties.Properties && customProperties.Properties.property) {
+    let accessibilityStatus: AccessibilityStatus = AccessibilityStatus.Untested;
+    if (customProperties && customProperties.Properties && customProperties.Properties.property) {        
         customProperties.Properties.property.forEach((prop: any) => {
             if (prop.$.name === "isAccessible") {
 
-                isAccessibleFlag = prop["vt:bool"] == '1' ? true : isAccessibleFlag;
+              accessibilityStatus = prop["vt:bool"] == '1' ? AccessibilityStatus.Accessible : AccessibilityStatus.NotAccessible;
             }
         });
     } else {
         console.log("No custom properties found in this document. Run the cecker.", filePath);
-        isAccessibleFlag = false;
+        accessibilityStatus = AccessibilityStatus.Untested;
     }
-    return isAccessibleFlag;
+    return accessibilityStatus;
 }
 
 /**

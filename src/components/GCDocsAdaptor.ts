@@ -8,6 +8,7 @@ import { IFolderContents } from '../Interfaces/iFolderContents';
 import FormData = require('form-data');
 import * as fsSync from 'fs';
 import { request } from 'undici';
+import { AccessibilityStatus } from "../components/accessibilityChecker";
 
 /**
  * An implementation of the IFileSystem interface for interacting with theSystem file system.
@@ -83,7 +84,7 @@ import { request } from 'undici';
                         path: item.id, // Path of the file
                         size: item.size, // Size in bytes or megabytes
                         mimeType: item.mime_type, // MIME type of the file, optional
-                        isAccessible: false, // Accessibility property
+                        isAccessible: AccessibilityStatus.Untested, // Accessibility property
                         customProperties: {} // Custom properties
                     };
                 });

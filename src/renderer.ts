@@ -10,11 +10,14 @@
 function generateFileTree(entries: any, path: string) {
   let html = '<ul>';
   for (const entry of entries) {
-    if (entry.isAccessible == true) {
+    if (entry.isAccessible == "Accessible") {
       html += `<li> <i class="fas fa-check-circle text-success fa-xs"></i> <i class="fas fa-file text-primary" data-curr-type="file" data-curr-path="${entry.path}" onclick="showAccStatus(this)"></i> ${entry.name}</li>`;
     }
-    else {
+    else  if (entry.isAccessible === "Not Accessible"){
       html += `<li> <i class="fas fa-times-circle text-danger fa-xs"></i> <i class="fas fa-file text-primary" data-curr-type="file" data-curr-path="${entry.path}" onclick="showAccStatus(this)"></i> ${entry.name}</li>`;
+    }
+    else {
+      html += `<li> <i class="fas fa-question-circle text-warning fa-xs"></i> <i class="fas fa-file text-primary" data-curr-type="file" data-curr-path="${entry.path}" onclick="showAccStatus(this)"></i> ${entry.name}</li>`;
     }
   }
   html += '</ul>';
@@ -53,13 +56,24 @@ async function showAccStatus(elem: any) {
         </tbody>
       </table>`;
     }
-    else {
+    else if (prevElement.classList.contains("fa-times-circle")) {
       HTMLReport += `
       <table id="accessibility-report" class="table">
         <tbody>
           <tr>
             <th>Accessibility status:</th>
             <td>Not accessible</td>
+          </tr>
+        </tbody>
+      </table>`;     
+    }
+    else {
+      HTMLReport += `
+      <table id="accessibility-report" class="table">
+        <tbody>
+          <tr>
+            <th>Accessibility status:</th>
+            <td>Not Tested</td>
           </tr>
         </tbody>
       </table>`;      

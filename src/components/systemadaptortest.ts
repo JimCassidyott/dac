@@ -1,4 +1,4 @@
-import { isAccessible } from "./accessibilityChecker";
+import { isAccessible, AccessibilityStatus } from "./accessibilityChecker";
 import { SystemAdapter } from "./systemAdaptor";
 import { isWordDocument } from "./FileSystemReader";
 import * as fs from 'fs';
