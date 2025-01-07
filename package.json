@@ -10,7 +10,8 @@
     "start": "electron-forge start",
     "cserve": "python -m http.server 8000",
     "package": "electron-forge package",
-    "make": "electron-forge make"
+    "make": "electron-forge make",
+    "create-test-files": "npx ts-node tests/createTestFiles.ts"
   },
   "repository": "https://github.com/electron/electron-quick-start-typescript",
   "keywords": [
@@ -46,6 +47,7 @@
     "eslint": "^7.32.0",
     "jest": "^29.7.0",
     "ts-jest": "^29.2.4",
+    "ts-node": "^10.9.2",
     "typescript": "^4.8.3",
     "undici-types": "^6.19.8"
   },
@@ -72,7 +74,6 @@
     "officegen": "^0.6.5",
     "pa11y": "^8.0.0",
     "pizzip": "^3.1.7",
-    "ts-node": "^10.9.2",
     "undici-types": "^6.19.8",
     "unzipper": "^0.12.3",
     "xml2js": "^0.6.2",
