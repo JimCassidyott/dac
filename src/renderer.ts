@@ -188,7 +188,7 @@ function receiveGetReport(data: any) {
   // show report
   const folderName = data.path.split('/').pop()  || data.path;
   let rightPanel = document.getElementById("right-panel");
-  let numInAccessibleFiles = data.report.numFiles - data.report.numAccessibleFiles;
+  let numInAccessibleFiles = data.report.numFiles - (data.report.numAccessibleFiles + data.report.numUntested);
   let accessiblePercentage = (data.report.numAccessibleFiles / data.report.numFiles) * 100;
   // Check for NaN, undefined, or division by zero and round to 1 decimal point
   if (!isFinite(accessiblePercentage)) {
@@ -207,6 +207,10 @@ function receiveGetReport(data: any) {
       <tr>
         <th>Number of Accessible Documents:</th>
         <td>${data.report.numAccessibleFiles}</td>
+      </tr>
+      <tr>
+        <th>Number of Untested Documents:</th>
+        <td>${data.report.numUntested}</td>
       </tr>
       <tr>
         <th>Number of Inaccessible Documents:</th>
@@ -234,13 +238,14 @@ function receiveGetReport(data: any) {
       const myChart = new window['Chart'](ctx, {
         type: 'pie', 
         data: {
-          labels: ['Accessible', 'Not Accessible'],
+          labels: ['Accessible', 'Not Accessible', 'Untested'],
           datasets: [{
             label: `Number of documents`,
-            data: [data.report.numAccessibleFiles, numInAccessibleFiles],
+            data: [data.report.numAccessibleFiles, numInAccessibleFiles, data.report.numUntested],
             backgroundColor: [
               'rgb(54, 162, 235)',
-              'rgb(255, 99, 132)'
+              'rgb(255, 99, 132)',
+              'rgb(255, 191, 0)'
             ],
             hoverOffset: 4
           }]

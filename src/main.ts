@@ -293,9 +293,9 @@ async function handleGetReport(path: string) {
       path: path,
       numFiles: 0, 
       numAccessibleFiles: 0,
+      numUntested: 0,
       files: [] as IFile[]
     };
-    console.log(documents);
     
     let documentList: IFile[] = await Promise.all(
       documents.map(async (filePath) => { // Create IFile objects with name, path, and fileCount initialized to 0
@@ -310,7 +310,8 @@ async function handleGetReport(path: string) {
       })
     );
       report.numFiles = documentList.length;
-      report.numAccessibleFiles = documentList.filter(doc => doc.isAccessible).length;
+      report.numAccessibleFiles = documentList.filter(doc => (doc.isAccessible === "Accessible")).length;
+      report.numUntested = documentList.filter(doc => (doc.isAccessible === "Untested")).length;
       report.files = documentList;
   
     return report;
