@@ -1,6 +1,6 @@
 import { isAccessible, AccessibilityStatus } from "./accessibilityChecker";
 import { SystemAdapter } from "./systemAdaptor";
-import { isWordDocument } from "./FileSystemReader";
+import { isWordDOC } from "./helpers";
 import * as fs from 'fs';
 
 // Get the file name from the command-line arguments
