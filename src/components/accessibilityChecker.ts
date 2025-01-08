@@ -11,7 +11,6 @@ const cheerio = require('cheerio');
 import { MSWordComments } from '../components/MSWordComments';
 import { Heading, HeadingError, HeadingErrorCode } from './Headings';
 import { testHeadings } from './MSWordHeaders';
-import { fileTypeFromFile } from 'file-type';
 import { isWordDOC } from './helpers';
 
 const errorCodesToIgnore = [
