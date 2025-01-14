@@ -6,6 +6,7 @@ import { IFile } from "./Interfaces/iFile";
 import { changeIsAccessibleProperty, isAccessible, AccessibilityStatus, testAccessiblity } from "./components/accessibilityChecker";
 import ProgressBar = require('electron-progressbar');
 import { GCDocsAdapter } from './components/GCDocsAdaptor';
+import { isWordDOC } from './components/helpers';
 
 let mainWindow: Electron.BrowserWindow = null;
 function createWindow() {
@@ -261,6 +262,12 @@ async function markFilesAccessibility(contents: IFile[], path: string): Promise<
   const markedFiles: IFile[] = [];
   for (const file of contents) {     
     let adjustedPath = path == './' ? (path + file.name) : (path + "/" + file.name);
+    if (!await isWordDOC(adjustedPath)) {
+      
+      file.isAccessible = AccessibilityStatus.NotApplicable;
+      markedFiles.push(file);
+      continue;
+    }
     file.isAccessible = await isAccessible(adjustedPath);
     markedFiles.push(file);
   }
@@ -274,7 +281,7 @@ async function handleGetContent (event: IpcMainInvokeEvent, path: string) {
     let adaptor = await getFileSystemAdapter();
     let content  = await adaptor.getFolderContents(normalizedPath);
     let filteredContent: IFolderContents = content;
-    filteredContent.files = filterDocxFiles(filteredContent.files);
+    // filteredContent.files = filterDocxFiles(filteredContent.files);
     filteredContent.files = await markFilesAccessibility(filteredContent.files, normalizedPath);
 
     return filteredContent;

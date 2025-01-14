@@ -16,8 +16,11 @@ function generateFileTree(entries: any, path: string) {
     else  if (entry.isAccessible === "Not Accessible"){
       html += `<li> <i class="fas fa-times-circle text-danger fa-xs"></i> <i class="fas fa-file text-primary" data-curr-type="file" data-curr-path="${entry.path}" onclick="showAccStatus(this)"></i> ${entry.name}</li>`;
     }
-    else {
+    else if (entry.isAccessible == "Untested"){
       html += `<li> <i class="fas fa-question-circle text-warning fa-xs"></i> <i class="fas fa-file text-primary" data-curr-type="file" data-curr-path="${entry.path}" onclick="showAccStatus(this)"></i> ${entry.name}</li>`;
+    }
+    else {
+      html += `<li> <i class="fas fa-ban text-danger fa-xs"></i> <i class="fas fa-file text-primary" data-curr-type="file" data-curr-path="${entry.path}" onclick="showAccStatus(this)"></i> ${entry.name}</li>`;
     }
   }
   html += '</ul>';
