@@ -172,6 +172,7 @@ function main(): void {
     const userInfo = collectUserInformation();
     const categories = categorizeInformation(userInfo);
     displayUserInformation(userInfo, categories);
+    console.log(`full name: ${getBasicUserInfo().username}`);
 }
 
 // Run the program

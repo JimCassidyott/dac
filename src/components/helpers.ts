@@ -30,3 +30,14 @@ export async function isWordDOC(filePath: string): Promise<boolean> {
         return false;
     }
 }
+
+export async function isPDFDoc(filePath: string): Promise<boolean> {
+  // Test 1: Check file extension
+  // Quick validation to ensure the file has a .pdf extension
+  // This is a fast initial check before performing more intensive operations
+  const fileExtension: string = path.extname(filePath).toLowerCase();
+  if (fileExtension !== '.pdf') {
+    return false;
+  }
+  return true;
+}

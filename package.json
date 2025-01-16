@@ -73,6 +73,7 @@
     "office-document-properties": "^1.1.0",
     "officegen": "^0.6.5",
     "pa11y": "^8.0.0",
+    "pdf-lib": "^1.17.1",
     "pizzip": "^3.1.7",
     "undici-types": "^6.19.8",
     "unzipper": "^0.12.3",
