@@ -166,4 +166,17 @@ export class SystemAdapter implements IFileSystem {
         return Promise.resolve(files
             .filter(file => path.extname(file) === '.docx'));
     }
+
+    /**
+    * Lists all .pdf files in the given directory and its subdirectories.
+    * Converts the file paths to full file paths.
+    *
+    * @param {string} dirPath - The path to the directory.
+    * @returns {Promise<string[]>} - A list of .docx file paths.
+    */
+    public listPDFFiles(dirPath: string): Promise<string[]> {
+      const { files } = this.listFilesAndDirectories(dirPath);
+      return Promise.resolve(files
+          .filter(file => path.extname(file) === '.pdf'));
+    }
 }

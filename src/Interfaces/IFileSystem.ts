@@ -7,4 +7,5 @@ export interface IFileSystem {
     getFolders(directoryPath: string): Promise<IFolder[]>;
     getFolderContents(directoryPath: string): Promise<IFolderContents>;
     listDocxFiles(dirPath: string): Promise<string[]>;
+    listPDFFiles(dirPath: string): Promise<string[]>;
 }

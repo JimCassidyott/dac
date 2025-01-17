@@ -6,7 +6,8 @@ import { IFile } from "./Interfaces/iFile";
 import { changeIsAccessibleProperty, isAccessible, AccessibilityStatus, testAccessiblity } from "./components/accessibilityChecker";
 import ProgressBar = require('electron-progressbar');
 import { GCDocsAdapter } from './components/GCDocsAdaptor';
-import { isWordDOC } from './components/helpers';
+import { isWordDOC, isPDFDoc } from './components/helpers';
+import * as PDFProperties from './components/PDFProperties';
 
 let mainWindow: Electron.BrowserWindow = null;
 function createWindow() {
@@ -262,14 +263,19 @@ async function markFilesAccessibility(contents: IFile[], path: string): Promise<
   const markedFiles: IFile[] = [];
   for (const file of contents) {     
     let adjustedPath = path == './' ? (path + file.name) : (path + "/" + file.name);
-    if (!await isWordDOC(adjustedPath)) {
-      
+    if(await isWordDOC(adjustedPath)) {
+      file.isAccessible = await isAccessible(adjustedPath);
+      markedFiles.push(file);
+    }
+    else if (await isPDFDoc(adjustedPath)) {
+      file.isAccessible = await PDFProperties.isAccessible(adjustedPath);
+      markedFiles.push(file);
+    }
+    else {
       file.isAccessible = AccessibilityStatus.NotApplicable;
       markedFiles.push(file);
       continue;
     }
-    file.isAccessible = await isAccessible(adjustedPath);
-    markedFiles.push(file);
   }
 
   return markedFiles;
@@ -328,13 +334,26 @@ async function handleGetReport(path: string) {
   }
 }
 
-async function testFile(path: string): Promise<boolean> {
+async function testFile(path: string): Promise<AccessibilityStatus> {
   try {
-    const {filePath, fileIsAccessible} = await testAccessiblity(path, fileSource); 
-    await changeIsAccessibleProperty(filePath, fileIsAccessible === true);
+    let fPath: string = "";
+    let fIsAccessible: AccessibilityStatus = null;
+    console.log(`testFile(path: string): ${path}`)
+    if (await isWordDOC(path)) {
+      const {filePath, fileIsAccessible} = await testAccessiblity(path, fileSource); 
+      await changeIsAccessibleProperty(filePath, fileIsAccessible === AccessibilityStatus.Accessible);
+      fPath = filePath;
+      fIsAccessible = fileIsAccessible;
+    }
+    else if (await isPDFDoc(path)) {
+      const {filePath, fileIsAccessible} = await PDFProperties.testPDFAccessibility(path); // temp dummy test function
+      fPath = filePath;
+      fIsAccessible = fileIsAccessible;
+    }
+
     if (fileSource === "GCDOCS") {
       let gcdocsAdapter = new GCDocsAdapter();
-      let res = await gcdocsAdapter.uploadDocumentContent(filePath, path);
+      let res = await gcdocsAdapter.uploadDocumentContent(fPath, path);
       if (!res) {
         new Notification({
           title: "Error",
@@ -342,7 +361,7 @@ async function testFile(path: string): Promise<boolean> {
         }).show();
       }
     }
-    return fileIsAccessible; 
+    return fIsAccessible; 
   } catch (error) {
     // Rethrow the error to be handled by the calling code
     throw new Error(`Accessibility test failed: ${error.message || error}`);
@@ -353,42 +372,51 @@ async function testFolder(path: string, progressBar: ProgressBar, fileTypes: str
   let adaptor = await getFileSystemAdapter();
   let testResults = {
     numfiles: 0,
-    results: [] as { path: string; success: boolean; passed: boolean | null }[]
+    results: [] as { path: string; success: boolean; passed: AccessibilityStatus | null }[]
   };
   fileTypes.map(item => {
     console.log(item);
   });
 
+  let documents: string[] = [];
+
   if (fileTypes.includes("word")) {
-    let documents = await adaptor.listDocxFiles(path);
-    testResults.numfiles = documents.length;
-    console.log("here");
-    
-    if (documents.length == 0) {
-      updateProgressBarValue(progressBar, 100);
-      return testResults;
+    let wordDocuments = await adaptor.listDocxFiles(path);
+    documents.push(...wordDocuments);
+  }
+
+  if (fileTypes.includes("pdf")) {
+    let pdfDocuments = await adaptor.listPDFFiles(path);
+    documents.push(...pdfDocuments);
+  }
+  
+  testResults.numfiles = documents.length;
+  console.log("here");
+  
+  if (documents.length == 0) {
+    updateProgressBarValue(progressBar, 100);
+    return testResults;
+  }
+  for (let i = 0; i < documents.length; i++) {
+    progressBar.detail = `Testing file ${i+1} out of ${documents.length}...`;
+    updateProgressBarValue(progressBar, ((1/documents.length) * 100));
+    let normalizedPath = pathModule.normalize(documents[i]).replace(/\\/g, '/');
+    try{
+      let accessibilityStatus = await testFile(documents[i]);
+      testResults.results.push({
+        path: normalizedPath,
+        success: true,  // The test ran successfully
+        passed: accessibilityStatus  // accessibility status of the file as an AccessibilityStatus object
+      });
+      
     }
-    for (let i = 0; i < documents.length; i++) {
-      progressBar.detail = `Testing file ${i+1} out of ${documents.length}...`;
-      updateProgressBarValue(progressBar, ((1/documents.length) * 100));
-      let normalizedPath = pathModule.normalize(documents[i]).replace(/\\/g, '/');
-      try{
-        let accessibilityStatus = await testFile(documents[i]);
-        testResults.results.push({
-          path: normalizedPath,
-          success: true,  // The test ran successfully
-          passed: accessibilityStatus  // Assuming testFile returns true if passed
-        });
-        
-      }
-      catch(error){
-        console.log(error);
-        testResults.results.push({
-          path: normalizedPath,
-          success: false,  // The test failed to run
-          passed: false  // Indicate that the test result is unknown due to failure
-        });
-      }
+    catch(error){
+      console.log(error);
+      testResults.results.push({
+        path: normalizedPath,
+        success: false,  // The test failed to run
+        passed: AccessibilityStatus.Untested  // Indicate that the test result is unknown due to failure
+      });
     }
   }
   updateProgressBarValue(progressBar, 100);

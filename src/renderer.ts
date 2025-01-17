@@ -19,6 +19,9 @@ function generateFileTree(entries: any, path: string) {
     else if (entry.isAccessible == "Untested"){
       html += `<li> <i class="fas fa-question-circle text-warning fa-xs"></i> <i class="fas fa-file text-primary" data-curr-type="file" data-curr-path="${entry.path}" onclick="showAccStatus(this)"></i> ${entry.name}</li>`;
     }
+    else if (entry.isAccessible == "ManualTesting"){
+      html += `<li> <i class="fas fa-exclamation text-warning fa-xs"></i> <i class="fas fa-file text-primary" data-curr-type="file" data-curr-path="${entry.path}" onclick="showAccStatus(this)"></i> ${entry.name}</li>`;
+    }
     else {
       html += `<li> <i class="fas fa-ban text-danger fa-xs"></i> <i class="fas fa-file text-primary" data-curr-type="file" data-curr-path="${entry.path}" onclick="showAccStatus(this)"></i> ${entry.name}</li>`;
     }
@@ -176,9 +179,12 @@ function receiveChangeAccessibilityStatus(data: any) {
   if (element) {
     let prevElement = element.previousElementSibling;
     if (prevElement && prevElement.tagName == 'I') {
-      if (data.accStatus == "true") {
+      if (data.accStatus == "Accessible") {
         prevElement.className = "fas fa-check-circle text-success fa-xs";
 
+      }
+      else if (data.accStatus === "ManualTesting") {
+        prevElement.className = "fas fa-exclamation text-warning fa-xs";
       }
       else {
         prevElement.className = "fas fa-times-circle text-danger fa-xs";

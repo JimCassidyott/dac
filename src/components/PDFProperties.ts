@@ -67,39 +67,61 @@ export async function isAccessible(filePath: string): Promise<AccessibilityStatu
  *
  * @param {string} filePath - The path to the pdf document.
  * @param {AccessibilityStatus} accessibilityStatus - The new accessibility status to set.
- * @return {Promise<void>}
+ * @return {Promise<AccessibilityStatus>} The new accessibility status if successful.
  */
-async function updateIsAccessibleProperty(
+export async function updateIsAccessibleProperty(
   filePath: string,
   accessibilityStatus: AccessibilityStatus
-): Promise<void> {
-  const pdfDoc: PDFDocument = await getPDFDocument(filePath);
-  const keywords = pdfDoc.getKeywords();
+): Promise<AccessibilityStatus> {
+  try {
+    const pdfDoc: PDFDocument = await getPDFDocument(filePath);
+    const keywords = pdfDoc.getKeywords();
 
-  let metadata: Record<string, any> = {};
+    let metadata: Record<string, any> = {};
 
-  if (keywords) {
-    try {
-      metadata = JSON.parse(keywords);
-    } catch (error) {
-      console.error('Error parsing existing metadata:', error);
+    if (keywords) {
+      try {
+        metadata = JSON.parse(keywords);
+      } catch (error) {
+        console.error('Error parsing existing metadata:', error);
+      }
     }
+
+    // Update or add the isAccessible field
+    metadata.isAccessible = accessibilityStatus;
+
+    // Add the username of the person updating the property
+    const username = getBasicUserInfo().username;
+    metadata.accessibilityStatusUpdatedBy = username;
+
+    // Save the updated metadata back to the PDF
+    pdfDoc.setKeywords([JSON.stringify(metadata)]);
+
+    const pdfBytes = await pdfDoc.save();
+    await fs.writeFile(filePath, pdfBytes);
+
+    return accessibilityStatus;
+  } catch (error) {
+    console.error('Error updating isAccessible property:', error);
+    throw new Error('Failed to update the isAccessible property of the PDF.');
   }
-
-  // Update or add the isAccessible field
-  metadata.isAccessible = accessibilityStatus;
-
-
-  // Add the username of the person updating the property
-  const username = getBasicUserInfo().username;
-  metadata.accessibilityStatusUpdatedBy = username;
-
-  // Save the updated metadata back to the PDF
-  pdfDoc.setKeywords([JSON.stringify(metadata)]);
-
-  const pdfBytes = await pdfDoc.save();
-  await fs.writeFile(filePath, pdfBytes);
 }
+
+// dummy function to mimic testing a pdf file
+export async function testPDFAccessibility(filePath: string) {
+  try{
+    // do testing here
+  
+    // once automated testing is done set isAccessible property as AccessibilityStatus.RequiresManualTesting
+    let fileIsAccessible = await updateIsAccessibleProperty(filePath, AccessibilityStatus.RequiresManualTesting);
+    return {filePath, fileIsAccessible};
+  }
+  catch (error) {
+    console.error(`function testPDFAccessibility: ${error}`);
+    throw(error);
+  }
+}
+
 
 async function main() {
   const filePath = '/home/tharindu/Downloads/new.pdf';

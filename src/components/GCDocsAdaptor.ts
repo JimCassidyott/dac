@@ -187,6 +187,12 @@ import { AccessibilityStatus } from "../components/accessibilityChecker";
         return files; // this.getFolders() already filters for documents
     }
 
+    public async listPDFFiles(dirPath: string): Promise<string[]> {
+      const { files } = await this.listFilesAndDirectories(dirPath);
+      //TO_DO: fix this!!!
+      return files; // this.getFolders() already filters for documents
+    }
+
     /**
      * Download the document at the given node and save it at /src/temp/GCdocsDownloadedDocuments/
      *

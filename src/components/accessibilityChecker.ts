@@ -365,10 +365,10 @@ function convertDocxToHtml(inputFilePath: string, outputFilePath: string): void 
  *
  * @param {string} inputFilePath - The path to the input file.
  * @param {string} fileSource - string 'SYSTEM' | 'GCDOCS' indicating where the source of the file is
- * @return {Promise<{filePath: string, fileIsAccessible: boolean}>} A promise that resolves to an object containing a boolean indicating
+ * @return {Promise<{filePath: string, fileIsAccessible: boolean}>} A promise that resolves to an object containing a AccessibilityStatus object indicating
  * whether the input file is accessible and a string indicating the path to the file that was tested.
  */
-export async function testAccessiblity(filePath: string, fileSource: string): Promise<{ filePath: string, fileIsAccessible: boolean }> {
+export async function testAccessiblity(filePath: string, fileSource: string): Promise<{ filePath: string, fileIsAccessible: AccessibilityStatus }> {
     try {
         // Check if the input file exists
         if (fileSource === 'GCDOCS') {
@@ -397,7 +397,7 @@ export async function testAccessiblity(filePath: string, fileSource: string): Pr
             await msWordComments.addComment(filePath, targetText, `${issue.code} \n${issue.message}`);
         }
 
-        let fileIsAccessible = filteredResults.length === 0;
+        let fileIsAccessible = filteredResults.length === 0 ? AccessibilityStatus.Accessible : AccessibilityStatus.NotAccessible;
         let headingErrors = await testHeadings(filePath);
         return { filePath, fileIsAccessible };
     } catch (error) {
