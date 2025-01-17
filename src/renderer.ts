@@ -13,13 +13,13 @@ function generateFileTree(entries: any, path: string) {
     if (entry.isAccessible == "Accessible") {
       html += `<li> <i class="fas fa-check-circle text-success fa-xs"></i> <i class="fas fa-file text-primary" data-curr-type="file" data-curr-path="${entry.path}" onclick="showAccStatus(this)"></i> ${entry.name}</li>`;
     }
-    else  if (entry.isAccessible === "NotAccessible"){
+    else  if (entry.isAccessible === "Not Accessible"){
       html += `<li> <i class="fas fa-times-circle text-danger fa-xs"></i> <i class="fas fa-file text-primary" data-curr-type="file" data-curr-path="${entry.path}" onclick="showAccStatus(this)"></i> ${entry.name}</li>`;
     }
     else if (entry.isAccessible == "Untested"){
       html += `<li> <i class="fas fa-question-circle text-warning fa-xs"></i> <i class="fas fa-file text-primary" data-curr-type="file" data-curr-path="${entry.path}" onclick="showAccStatus(this)"></i> ${entry.name}</li>`;
     }
-    else if (entry.isAccessible == "ManualTesting"){
+    else if (entry.isAccessible == "Manual Testing Required"){
       html += `<li> <i class="fas fa-exclamation text-warning fa-xs"></i> <i class="fas fa-file text-primary" data-curr-type="file" data-curr-path="${entry.path}" onclick="showAccStatus(this)"></i> ${entry.name}</li>`;
     }
     else {
@@ -183,7 +183,7 @@ function receiveChangeAccessibilityStatus(data: any) {
         prevElement.className = "fas fa-check-circle text-success fa-xs";
 
       }
-      else if (data.accStatus === "ManualTesting") {
+      else if (data.accStatus === "Manual Testing Required") {
         prevElement.className = "fas fa-exclamation text-warning fa-xs";
       }
       else {

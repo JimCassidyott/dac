@@ -71,10 +71,10 @@ export async function readCustomPropertiesXml(filePath: string): Promise<any | u
 
 export enum AccessibilityStatus {
   Accessible = "Accessible",
-  NotAccessible = "NotAccessible",
+  NotAccessible = "Not Accessible",
   Untested = "Untested",
-  NotApplicable = "NotApplicable",
-  RequiresManualTesting = "ManualTesting" //pdf specific
+  NotApplicable = "Not Applicable",
+  ManualTestingRequired = "Manual Testing Required" //pdf specific
 }
 
 /**

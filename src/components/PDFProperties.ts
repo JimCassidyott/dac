@@ -48,10 +48,10 @@ export async function isAccessible(filePath: string): Promise<AccessibilityStatu
 
     if (accessibilityStatus === 'Accessible') {
       return AccessibilityStatus.Accessible;
-    } else if (accessibilityStatus === 'NotAccessible') {
+    } else if (accessibilityStatus === 'Not Accessible') {
       return AccessibilityStatus.NotAccessible;
-    } else if (accessibilityStatus === 'ManualTesting') {
-      return AccessibilityStatus.RequiresManualTesting;
+    } else if (accessibilityStatus === 'Manual Testing Required') {
+      return AccessibilityStatus.ManualTestingRequired;
     } else {
       return AccessibilityStatus.Untested;
     }
@@ -113,7 +113,7 @@ export async function testPDFAccessibility(filePath: string) {
     // do testing here
   
     // once automated testing is done set isAccessible property as AccessibilityStatus.RequiresManualTesting
-    let fileIsAccessible = await updateIsAccessibleProperty(filePath, AccessibilityStatus.RequiresManualTesting);
+    let fileIsAccessible = await updateIsAccessibleProperty(filePath, AccessibilityStatus.ManualTestingRequired);
     return {filePath, fileIsAccessible};
   }
   catch (error) {
@@ -124,15 +124,18 @@ export async function testPDFAccessibility(filePath: string) {
 
 
 async function main() {
-  const filePath = '/home/tharindu/Downloads/new.pdf';
+  const filePath = '/home/tharindu/Documents/work/test_dac/dac/demo_files/accessible/Discipline_Specific_Action_Verb_Tip_Sheet (copy).pdf';
 
   const test = await isAccessible(filePath);
   console.log(`Initial accessibility status: ${test}`);
 
-  await updateIsAccessibleProperty(filePath, AccessibilityStatus.RequiresManualTesting);
+  console.log("set accessibilty status to AccessibilityStatus.NotAccessible");
+  await updateIsAccessibleProperty(filePath, AccessibilityStatus.NotAccessible);
+  console.log(`Updated accessibility status: ${await isAccessible(filePath)}`);
 
-  const updatedTest = await isAccessible(filePath);
-  console.log(`Updated accessibility status: ${updatedTest}`);
+  console.log("set accessibilty status to AccessibilityStatus.ManualTestingRequired");
+  await updateIsAccessibleProperty(filePath, AccessibilityStatus.ManualTestingRequired);
+  console.log(`Updated accessibility status: ${await isAccessible(filePath)}`);
 }
 
 if (require.main === module) {
