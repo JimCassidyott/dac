@@ -20,7 +20,7 @@ function generateFileTree(entries: any, path: string) {
       html += `<li> <i class="fas fa-question-circle text-warning fa-xs"></i> <i class="fas fa-file text-primary" data-curr-type="file" data-curr-path="${entry.path}" onclick="showAccStatus(this)"></i> ${entry.name}</li>`;
     }
     else if (entry.isAccessible == "Manual Testing Required"){
-      html += `<li> <i class="fas fa-exclamation text-warning fa-xs"></i> <i class="fas fa-file text-primary" data-curr-type="file" data-curr-path="${entry.path}" onclick="showAccStatus(this)"></i> ${entry.name}</li>`;
+      html += `<li> <i class="fas fa-exclamation-triangle text-danger fa-xs"></i> <i class="fas fa-file text-primary" data-curr-type="file" data-curr-path="${entry.path}" onclick="showAccStatus(this)"></i> ${entry.name}</li>`;
     }
     else {
       html += `<li> <i class="fas fa-ban text-danger fa-xs"></i> <i class="fas fa-file text-primary" data-curr-type="file" data-curr-path="${entry.path}" onclick="showAccStatus(this)"></i> ${entry.name}</li>`;
@@ -197,7 +197,7 @@ function receiveGetReport(data: any) {
   // show report
   const folderName = data.path.split('/').pop()  || data.path;
   let rightPanel = document.getElementById("right-panel");
-  let numInAccessibleFiles = data.report.numFiles - (data.report.numAccessibleFiles + data.report.numUntested);
+  let numInAccessibleFiles = data.report.numFiles - (data.report.numAccessibleFiles + data.report.numUntested + data.report.numManualTestingRequired);
   let accessiblePercentage = (data.report.numAccessibleFiles / data.report.numFiles) * 100;
   // Check for NaN, undefined, or division by zero and round to 1 decimal point
   if (!isFinite(accessiblePercentage)) {
@@ -216,6 +216,10 @@ function receiveGetReport(data: any) {
       <tr>
         <th>Number of Accessible Documents:</th>
         <td>${data.report.numAccessibleFiles}</td>
+      </tr>
+      <tr>
+        <th>Number of Documents Requiring Manual Testing:</th>
+        <td>${data.report.numManualTestingRequired}</td>
       </tr>
       <tr>
         <th>Number of Untested Documents:</th>
@@ -247,13 +251,14 @@ function receiveGetReport(data: any) {
       const myChart = new window['Chart'](ctx, {
         type: 'pie', 
         data: {
-          labels: ['Accessible', 'Not Accessible', 'Untested'],
+          labels: ['Accessible', 'Not Accessible', 'Manual Testing Required', 'Untested'],
           datasets: [{
             label: `Number of documents`,
-            data: [data.report.numAccessibleFiles, numInAccessibleFiles, data.report.numUntested],
+            data: [data.report.numAccessibleFiles, numInAccessibleFiles, data.report.numManualTestingRequired, data.report.numUntested],
             backgroundColor: [
               'rgb(54, 162, 235)',
               'rgb(255, 99, 132)',
+              'rgb(255,140,0)',
               'rgb(255, 191, 0)'
             ],
             hoverOffset: 4

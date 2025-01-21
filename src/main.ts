@@ -301,32 +301,42 @@ async function handleGetContent (event: IpcMainInvokeEvent, path: string) {
 async function handleGetReport(path: string) {
   try{
     let adaptor = await getFileSystemAdapter();
-    let documents = await adaptor.listDocxFiles(path);
+    let wordDocuments = await adaptor.listDocxFiles(path);
+    let pdfDocuments = await adaptor.listPDFFiles(path);
+    let documents = [...wordDocuments, ...pdfDocuments];
     let report = {
       path: path,
       numFiles: 0, 
       numAccessibleFiles: 0,
       numUntested: 0,
+      numManualTestingRequired: 0,
       files: [] as IFile[]
     };
     
     let documentList: IFile[] = await Promise.all(
       documents.map(async (filePath) => { // Create IFile objects with name, path, and fileCount initialized to 0
+        let accessibilityStatus = AccessibilityStatus.Untested;
+        if (await isWordDOC(filePath)) {   
+          accessibilityStatus = await isAccessible(filePath);   
+        }
+        else if (await isPDFDoc(filePath)) {   
+          accessibilityStatus = await PDFProperties.isAccessible(filePath);  
+        }
         return {
           name: filePath.split('/').pop() || filePath, // Name of the file
           path: filePath, // Path of the file
           size: "0", // Size in bytes or megabytes
           mimeType: "", // MIME type of the file, optional
-          isAccessible: await isAccessible(filePath), // Accessibility property
+          isAccessible: accessibilityStatus, // Accessibility property
           customProperties: {} // Custom properties
         };
       })
     );
-      report.numFiles = documentList.length;
-      report.numAccessibleFiles = documentList.filter(doc => (doc.isAccessible === "Accessible")).length;
-      report.numUntested = documentList.filter(doc => (doc.isAccessible === "Untested")).length;
-      report.files = documentList;
-  
+    report.numFiles = documentList.length;
+    report.numAccessibleFiles = documentList.filter(doc => (doc.isAccessible === "Accessible")).length;
+    report.numUntested = documentList.filter(doc => (doc.isAccessible === "Untested")).length;
+    report.numManualTestingRequired = documentList.filter(doc => (doc.isAccessible === "Manual Testing Required")).length;
+    report.files = documentList;
     return report;
   } catch (err) {
       console.error(`Error getting contents of folder at path ${path}:`, err);
