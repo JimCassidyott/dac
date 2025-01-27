@@ -399,6 +399,10 @@ export async function testAccessiblity(filePath: string, fileSource: string): Pr
 
         let fileIsAccessible = filteredResults.length === 0 ? AccessibilityStatus.Accessible : AccessibilityStatus.NotAccessible;
         let headingErrors = await testHeadings(filePath);
+        fs.unlink(outputFilePath, (err) => {
+          if (err) throw (err);
+          console.log(`Successfully deleted file: ${outputFilePath}`);
+        });
         return { filePath, fileIsAccessible };
     } catch (error) {
         // Check if error is related to headers and add a comment

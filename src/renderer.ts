@@ -184,7 +184,7 @@ function receiveChangeAccessibilityStatus(data: any) {
 
       }
       else if (data.accStatus === "Manual Testing Required") {
-        prevElement.className = "fas fa-exclamation text-warning fa-xs";
+        prevElement.className = "fas fa-exclamation-triangle text-danger fa-xs";
       }
       else {
         prevElement.className = "fas fa-times-circle text-danger fa-xs";
