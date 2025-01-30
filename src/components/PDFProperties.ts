@@ -3,6 +3,7 @@ import { isPDFDoc } from './helpers';
 import { PDFDocument } from 'pdf-lib';
 import { AccessibilityStatus } from './accessibilityChecker';
 import { getBasicUserInfo } from './user';
+import { GCDocsAdapter } from './GCDocsAdaptor';
 
 /**
  * Takes a path to a PDF file and returns a PDFDocument object
@@ -34,7 +35,12 @@ async function getPDFDocument(filePath: string): Promise<PDFDocument> {
  * @param {string} filePath - The path to the pdf document.
  * @return {Promise<AccessibilityStatus>} A Promise that resolves to an AccessibilityStatus enum value.
  */
-export async function isAccessible(filePath: string): Promise<AccessibilityStatus> {
+export async function isAccessible(filePath: string, fileSource: string): Promise<AccessibilityStatus> {
+  if (fileSource === 'GCDOCS') {
+    let adapter = new GCDocsAdapter();
+    filePath = await adapter.downloadDocumentContent(filePath);
+  }
+
   const pdfDoc: PDFDocument = await getPDFDocument(filePath);
   const keywords = pdfDoc.getKeywords();
 
@@ -108,8 +114,12 @@ export async function updateIsAccessibleProperty(
 }
 
 // dummy function to mimic testing a pdf file
-export async function testPDFAccessibility(filePath: string) {
+export async function testPDFAccessibility(filePath: string, fileSource: string) {
   try{
+    if (fileSource === 'GCDOCS') {
+      let adapter = new GCDocsAdapter();
+      filePath = await adapter.downloadDocumentContent(filePath);
+    }
     // do testing here
   
     // once automated testing is done set isAccessible property as AccessibilityStatus.RequiresManualTesting
@@ -126,16 +136,16 @@ export async function testPDFAccessibility(filePath: string) {
 async function main() {
   const filePath = '/home/tharindu/Documents/work/test_dac/dac/demo_files/accessible/Discipline_Specific_Action_Verb_Tip_Sheet (copy).pdf';
 
-  const test = await isAccessible(filePath);
+  const test = await isAccessible(filePath, "SYSTEM");
   console.log(`Initial accessibility status: ${test}`);
 
   console.log("set accessibilty status to AccessibilityStatus.NotAccessible");
   await updateIsAccessibleProperty(filePath, AccessibilityStatus.NotAccessible);
-  console.log(`Updated accessibility status: ${await isAccessible(filePath)}`);
+  console.log(`Updated accessibility status: ${await isAccessible(filePath, "SYSTEM")}`);
 
   console.log("set accessibilty status to AccessibilityStatus.ManualTestingRequired");
   await updateIsAccessibleProperty(filePath, AccessibilityStatus.ManualTestingRequired);
-  console.log(`Updated accessibility status: ${await isAccessible(filePath)}`);
+  console.log(`Updated accessibility status: ${await isAccessible(filePath, "SYSTEM")}`);
 }
 
 if (require.main === module) {

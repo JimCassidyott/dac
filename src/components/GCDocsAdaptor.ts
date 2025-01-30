@@ -9,6 +9,7 @@ import FormData = require('form-data');
 import * as fsSync from 'fs';
 import { request } from 'undici';
 import { AccessibilityStatus } from "../components/accessibilityChecker";
+import { isPDFDoc, isWordDOC } from './helpers';
 
 /**
  * An implementation of the IFileSystem interface for interacting with theSystem file system.
@@ -29,6 +30,7 @@ import { AccessibilityStatus } from "../components/accessibilityChecker";
         try{
             const username = process.env.GCDOCS_USERNAME;
             const password = process.env.GCDOCS_PASSWORD;
+            process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
             const GCdocsAPIURL = 'https://dev.gcdocs.gc.ca/csc-scc/llisapi.dll/api/v1/auth';
             const response = await fetch(GCdocsAPIURL, {
                 method: 'POST',
@@ -48,7 +50,7 @@ import { AccessibilityStatus } from "../components/accessibilityChecker";
             this.OTCSTicket = result.ticket;
         }
         catch(error){
-            console.error(error)
+            console.error(`error at auth ${error}`)
             throw error;            
         }
     }
@@ -77,11 +79,11 @@ import { AccessibilityStatus } from "../components/accessibilityChecker";
             let jsonResponse = await response.json();
             
             const fileList: IFile[] = jsonResponse.data
-                .filter((item: { type: number; name: string }) => (item.type == 144) && (item.name.split('.').pop() == "docx")) //type 144 should be documents but i guess GCdocs
-                .map((item: { name: string; id: number; mime_type: string; size: number }) => {                                 //expects the user to add in this type otherwise any 
-                    return {                                                                                                    //file defaults to type 144
+                .filter((item: { type: number; name: string }) => (item.type == 144)) //type 144 should be documents but i guess GCdocs
+                .map((item: { name: string; id: number; mime_type: string; size: number }) => {                                  
+                    return {                                                                                                    
                         name: item.name, // Name of the file
-                        path: item.id, // Path of the file
+                        path: `${item.id}/${item.name}`, // Path of the file
                         size: item.size, // Size in bytes or megabytes
                         mimeType: item.mime_type, // MIME type of the file, optional
                         isAccessible: AccessibilityStatus.Untested, // Accessibility property
@@ -184,13 +186,26 @@ import { AccessibilityStatus } from "../components/accessibilityChecker";
 
     public async listDocxFiles(dirPath: string): Promise<string[]> {
         const { files } = await this.listFilesAndDirectories(dirPath);
-        return files; // this.getFolders() already filters for documents
+        const results = await Promise.all(
+            files.map(async (file) => ({
+                file,
+                isWordDoc: await isWordDOC(file, "GCDOCS")
+            }))
+        );
+        const docxFiles = results.filter(result => result.isWordDoc).map(result => result.file);
+        return docxFiles; 
     }
 
     public async listPDFFiles(dirPath: string): Promise<string[]> {
-      const { files } = await this.listFilesAndDirectories(dirPath);
-      //TO_DO: fix this!!!
-      return files; // this.getFolders() already filters for documents
+        let { files } = await this.listFilesAndDirectories(dirPath);
+        const results = await Promise.all(
+            files.map(async (file) => ({
+                file,
+                isPDFDoc: await isPDFDoc(file)
+            }))
+        );
+        const pdfFiles = results.filter(result => result.isPDFDoc).map(result => result.file);
+        return pdfFiles; 
     }
 
     /**
@@ -200,7 +215,7 @@ import { AccessibilityStatus } from "../components/accessibilityChecker";
      * @returns {Promise<string>} - Path to the saved file.
      */
     public async downloadDocumentContent(nodeID: string): Promise<string> {
-        let nodeURL = `https://dev.gcdocs.gc.ca/csc-scc/llisapi.dll/api/v1/nodes/${nodeID.toString()}/content`;
+        let nodeURL = `https://dev.gcdocs.gc.ca/csc-scc/llisapi.dll/api/v1/nodes/${nodeID.toString().split("/")[0]}/content`;
         try{
             const response = await fetch(nodeURL, {
                 method: 'GET',
@@ -229,7 +244,7 @@ import { AccessibilityStatus } from "../components/accessibilityChecker";
      * @returns {Promise<boolean | Error>} - true if it successfully uploads the document, throw error otherwise. 
      */
     public async uploadDocumentContent(filePath: string, nodeID: string): Promise<boolean | Error>{
-        let nodeURL = `https://dev.gcdocs.gc.ca/csc-scc/llisapi.dll/api/v1/nodes/${nodeID.toString()}/versions`;
+        let nodeURL = `https://dev.gcdocs.gc.ca/csc-scc/llisapi.dll/api/v1/nodes/${nodeID.toString().split("/")[0]}/versions`;
         try{
             let formData = new FormData();
 
