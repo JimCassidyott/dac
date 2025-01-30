@@ -75,8 +75,8 @@ function createWindow() {
           {
             label: 'Change accessibility status',
             click: async () => {
-              await changeIsAccessibleProperty(arg.path, !await isAccessible(arg.path));
-              let nAccessibility = await isAccessible(arg.path);
+              await changeIsAccessibleProperty(arg.path, !await isAccessible(arg.path, fileSource));
+              let nAccessibility = await isAccessible(arg.path, fileSource);
               mainWindow.webContents.send('context-menu-action', {action: 'change-accessibility-status', path: arg.path, accStatus: nAccessibility.toString()});
             }
           }
@@ -263,12 +263,12 @@ async function markFilesAccessibility(contents: IFile[], path: string): Promise<
   const markedFiles: IFile[] = [];
   for (const file of contents) {     
     let adjustedPath = path == './' ? (path + file.name) : (path + "/" + file.name);
-    if(await isWordDOC(adjustedPath)) {
-      file.isAccessible = await isAccessible(adjustedPath);
+    if(await isWordDOC(adjustedPath, fileSource)) {
+      file.isAccessible = await isAccessible(file.path, fileSource);
       markedFiles.push(file);
     }
     else if (await isPDFDoc(adjustedPath)) {
-      file.isAccessible = await PDFProperties.isAccessible(adjustedPath);
+      file.isAccessible = await PDFProperties.isAccessible(file.path, fileSource);
       markedFiles.push(file);
     }
     else {
@@ -281,6 +281,10 @@ async function markFilesAccessibility(contents: IFile[], path: string): Promise<
   return markedFiles;
 }
 
+// async function markGCdocsFilesAccessibility(contents: IFile[], path: string): Promise<IFile[]> {
+  
+// }
+
 async function handleGetContent (event: IpcMainInvokeEvent, path: string) {  
   try {
     let normalizedPath = pathModule.normalize(path).replace(/\\/g, '/');
@@ -288,6 +292,7 @@ async function handleGetContent (event: IpcMainInvokeEvent, path: string) {
     let content  = await adaptor.getFolderContents(normalizedPath);
     let filteredContent: IFolderContents = content;
     // filteredContent.files = filterDocxFiles(filteredContent.files);
+    console.log(filteredContent.files);
     filteredContent.files = await markFilesAccessibility(filteredContent.files, normalizedPath);
 
     return filteredContent;
@@ -316,11 +321,11 @@ async function handleGetReport(path: string) {
     let documentList: IFile[] = await Promise.all(
       documents.map(async (filePath) => { // Create IFile objects with name, path, and fileCount initialized to 0
         let accessibilityStatus = AccessibilityStatus.Untested;
-        if (await isWordDOC(filePath)) {   
-          accessibilityStatus = await isAccessible(filePath);   
+        if (await isWordDOC(filePath, fileSource)) {   
+          accessibilityStatus = await isAccessible(filePath, fileSource);   
         }
         else if (await isPDFDoc(filePath)) {   
-          accessibilityStatus = await PDFProperties.isAccessible(filePath);  
+          accessibilityStatus = await PDFProperties.isAccessible(filePath, fileSource);  
         }
         return {
           name: filePath.split('/').pop() || filePath, // Name of the file
@@ -348,15 +353,14 @@ async function testFile(path: string): Promise<AccessibilityStatus> {
   try {
     let fPath: string = "";
     let fIsAccessible: AccessibilityStatus = null;
-    console.log(`testFile(path: string): ${path}`)
-    if (await isWordDOC(path)) {
+    if (await isWordDOC(path, fileSource)) {
       const {filePath, fileIsAccessible} = await testAccessiblity(path, fileSource); 
       await changeIsAccessibleProperty(filePath, fileIsAccessible === AccessibilityStatus.Accessible);
       fPath = filePath;
       fIsAccessible = fileIsAccessible;
     }
     else if (await isPDFDoc(path)) {
-      const {filePath, fileIsAccessible} = await PDFProperties.testPDFAccessibility(path); // temp dummy test function
+      const {filePath, fileIsAccessible} = await PDFProperties.testPDFAccessibility(path, fileSource); // temp dummy test function
       fPath = filePath;
       fIsAccessible = fileIsAccessible;
     }
@@ -401,7 +405,6 @@ async function testFolder(path: string, progressBar: ProgressBar, fileTypes: str
   }
   
   testResults.numfiles = documents.length;
-  console.log("here");
   
   if (documents.length == 0) {
     updateProgressBarValue(progressBar, 100);

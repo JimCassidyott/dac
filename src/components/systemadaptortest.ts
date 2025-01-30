@@ -102,7 +102,7 @@ function filterDocxFiles(contents: IFile[]): IFile[] {
 async function markFilesAccessibility(contents: IFile[]): Promise<IFile[]> {
     const markedFiles: IFile[] = [];
     for (const file of contents) {
-        file.isAccessible = await isAccessible(filePath + '/' + file.name);
+        file.isAccessible = await isAccessible((filePath + '/' + file.name), "SYSTEM");
         markedFiles.push(file);
     }
 

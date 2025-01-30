@@ -83,7 +83,12 @@ export enum AccessibilityStatus {
  * @param {string} filePath - The path to the Word document.
  * @return {Promise<AccessibilityStatus>} A Promise that resolves to an AccessibilityStatus enum value.
  */
-export async function isAccessible(filePath: string): Promise<AccessibilityStatus> {
+export async function isAccessible(filePath: string, fileSource: string): Promise<AccessibilityStatus> {
+    if (fileSource === 'GCDOCS') {
+        let adapter = new GCDocsAdapter();
+        filePath = await adapter.downloadDocumentContent(filePath);
+
+    }
     // Read the custom properties XML
     const customProperties = await readCustomPropertiesXml(filePath);
     if (!customProperties || !customProperties.Properties || !customProperties.Properties.property) {
@@ -121,7 +126,7 @@ async function readDocxFile(filePath: string): Promise<JSZip> {
     }
 
     // Check if the file is a valid DOCX file
-    if (!isWordDOC(filePath)) {
+    if (!isWordDOC(filePath, "SYSTEM")) {
         throw new Error('The file is not a valid DOCX file');
     }
 

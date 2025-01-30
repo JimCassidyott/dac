@@ -7,14 +7,19 @@ import { fromFile } from 'file-type';
  * @param {string} filePath The path to the file to be checked.
  * @return {Promise<boolean>} A Promise that resolves to a boolean indicating whether the file is a Word document.
  */
-export async function isWordDOC(filePath: string): Promise<boolean> {
+export async function isWordDOC(filePath: string, fileSource: string): Promise<boolean> {
     // Test 1: Check file extension
     // Quick validation to ensure the file has a .docx extension
     // This is a fast initial check before performing more intensive operations
     const fileExtension: string = path.extname(filePath).toLowerCase();
-    if (fileExtension !== '.docx') {
+    console.log(`file extension: ${fileExtension}`);
+    if ((fileExtension !== '.docx') || (fileExtension !== ".docx" && fileSource === "GCDOCS")) {
+        console.log("returning false")
         return false;
     }
+    console.log("not return false")
+
+    // if (fileExtension === ".docx" && fileSource === "GCDOCS") { return true; }
 
     try {
         // Test 2: Validate MIME type
