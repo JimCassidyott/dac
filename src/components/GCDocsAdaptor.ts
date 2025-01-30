@@ -185,11 +185,15 @@ import { isPDFDoc, isWordDOC } from './helpers';
     }
 
     public async listDocxFiles(dirPath: string): Promise<string[]> {
-        let { files } = await this.listFilesAndDirectories(dirPath);
-        console.log(`files before: ${files}`);
-        let test = files.filter(async (file) => await isWordDOC(file, "GCDOCS"));
-        console.log(`files after: ${test}`);
-        return files; // this.getFolders() already filters for documents
+        const { files } = await this.listFilesAndDirectories(dirPath);
+        const results = await Promise.all(
+            files.map(async (file) => ({
+                file,
+                isWordDoc: await isWordDOC(file, "GCDOCS")
+            }))
+        );
+        const docxFiles = results.filter(result => result.isWordDoc).map(result => result.file);
+        return docxFiles; 
     }
 
     public async listPDFFiles(dirPath: string): Promise<string[]> {

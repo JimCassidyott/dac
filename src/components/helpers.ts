@@ -12,14 +12,11 @@ export async function isWordDOC(filePath: string, fileSource: string): Promise<b
     // Quick validation to ensure the file has a .docx extension
     // This is a fast initial check before performing more intensive operations
     const fileExtension: string = path.extname(filePath).toLowerCase();
-    console.log(`file extension: ${fileExtension}`);
-    if ((fileExtension !== '.docx') || (fileExtension !== ".docx" && fileSource === "GCDOCS")) {
-        console.log("returning false")
+    if (fileExtension !== '.docx') {
         return false;
     }
-    console.log("not return false")
 
-    // if (fileExtension === ".docx" && fileSource === "GCDOCS") { return true; }
+    if (fileExtension === ".docx" && fileSource === "GCDOCS") { return true; }
 
     try {
         // Test 2: Validate MIME type
