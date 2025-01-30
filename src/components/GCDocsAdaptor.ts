@@ -197,10 +197,15 @@ import { isPDFDoc, isWordDOC } from './helpers';
     }
 
     public async listPDFFiles(dirPath: string): Promise<string[]> {
-      let { files } = await this.listFilesAndDirectories(dirPath);
-      files = files.filter(async file => await isPDFDoc(file));
-      //TO_DO: fix this!!!
-      return files; // this.getFolders() already filters for documents
+        let { files } = await this.listFilesAndDirectories(dirPath);
+        const results = await Promise.all(
+            files.map(async (file) => ({
+                file,
+                isPDFDoc: await isPDFDoc(file)
+            }))
+        );
+        const pdfFiles = results.filter(result => result.isPDFDoc).map(result => result.file);
+        return pdfFiles; 
     }
 
     /**

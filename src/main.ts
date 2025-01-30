@@ -291,8 +291,6 @@ async function handleGetContent (event: IpcMainInvokeEvent, path: string) {
     let adaptor = await getFileSystemAdapter();
     let content  = await adaptor.getFolderContents(normalizedPath);
     let filteredContent: IFolderContents = content;
-    // filteredContent.files = filterDocxFiles(filteredContent.files);
-    console.log(filteredContent.files);
     filteredContent.files = await markFilesAccessibility(filteredContent.files, normalizedPath);
 
     return filteredContent;
