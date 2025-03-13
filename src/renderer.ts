@@ -148,7 +148,31 @@ window.electronAPI.receive('context-menu-action', (data) => {
 });
 
 window.electronAPI.receive('top-menu-action', (data) => {  
-  document.getElementById("right-panel").innerHTML = null;
+  document.getElementById("right-panel").innerHTML = `
+    <div class="card">
+      <h2 class="card-header h5">Document Accessibility Checker (DAC)</h2>
+      <div class="card-body">
+        <p class="card-text">
+          The Document Accessibility Checker provides a place to test and view the accessibility complience status of documents.
+        </p>
+        <p class="card-text">
+          This application enables users to test the accessibility of their Word, PDF, or PowerPoint documents in compliance with 
+          the Web Content Accessibility Guidelines (WCAG). Users can open folders on their computer or in GCdocs through the application and test the documents contained within these folders.
+
+          The application supports both individual document testing and batch testing of all documents within a selected folder and its subfolders. 
+        </p>
+        <p class="card-text">
+          <b>Important:</b> The PDF testing performed by this application alone is not sufficient to determine whether a PDF file is fully accessible. 
+          Most PDF files require manual testing to confirm compliance with accessibility standards.
+
+          When a PDF file is tested using this application, it undergoes automated checks and is then marked as <b>"Manual Testing Required."</b> 
+          The user must conduct manual testing before manually marking the file as accessible using the context menu option.
+        </p>
+      </div>
+      </div>
+    </div>
+  `;
+
   if (data.action == "open-folder") {
     let html = 
     `

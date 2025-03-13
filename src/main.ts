@@ -39,26 +39,6 @@ function createWindow() {
         let runAccessibilityTest = new MenuItem(
           {
             label: 'Run accessibility test',
-            // click: async () => {
-            //   let progressBar = createProgressBar(`Test documents in ${arg.path.split('/').pop()  || arg.path}`, 
-            //   'Calculating number of documents...');
-            //   let res = await testFolder(arg.path, progressBar);
-            //   if (res.numfiles == 0) {
-            //     mainWindow.webContents.send("context-menu-action", {
-            //       action: 'run-folder-accessibility-test',
-            //       path: arg.path,
-            //       testStatus: "noDocuments"
-            //     });
-            //   }
-            //   else {
-            //     mainWindow.webContents.send("context-menu-action", {
-            //       action: 'run-folder-accessibility-test',
-            //       path: arg.path,
-            //       testStatus: "completed",
-            //       results: res.results
-            //     });
-            //   }
-            // }
             click: async () => {
               mainWindow.webContents.send('context-menu-action', {
                 action: "get-testing-file-type",
@@ -281,9 +261,6 @@ async function markFilesAccessibility(contents: IFile[], path: string): Promise<
   return markedFiles;
 }
 
-// async function markGCdocsFilesAccessibility(contents: IFile[], path: string): Promise<IFile[]> {
-  
-// }
 
 async function handleGetContent (event: IpcMainInvokeEvent, path: string) {  
   try {
