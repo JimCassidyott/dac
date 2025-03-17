@@ -8,6 +8,7 @@ import ProgressBar = require('electron-progressbar');
 import { GCDocsAdapter } from './components/GCDocsAdaptor';
 import { isWordDOC, isPDFDoc } from './components/helpers';
 import * as PDFProperties from './components/PDFProperties';
+import * as fs from 'fs';
 
 let mainWindow: Electron.BrowserWindow = null;
 function createWindow() {
@@ -349,6 +350,10 @@ async function testFile(path: string): Promise<AccessibilityStatus> {
           body: `Failed to upload tested document to GCdocs`
         }).show();
       }
+      fs.unlink(fPath, (err) => {
+        if (err) throw (err);
+        console.log(`Successfully deleted file: ${fPath}`);
+      });
     }
     return fIsAccessible; 
   } catch (error) {
