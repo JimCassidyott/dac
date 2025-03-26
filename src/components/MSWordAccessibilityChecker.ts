@@ -8,7 +8,7 @@ import * as pa11y from 'pa11y';
 import * as JSZip from 'jszip';
 import { GCDocsAdapter } from './GCDocsAdaptor';
 const cheerio = require('cheerio');
-import { MSWordComments } from '../components/MSWordComments';
+import { MSWordComments } from './MSWordComments';
 import { Heading, HeadingError, HeadingErrorCode } from './Headings';
 import { testHeadings } from './MSWordHeaders';
 import { isWordDOC, AccessibilityStatus } from './helpers';

@@ -3,7 +3,7 @@ import * as pathModule from "path";
 import { SystemAdapter } from './components/systemAdaptor';
 import { IFolderContents } from "./Interfaces/iFolderContents";
 import { IFile } from "./Interfaces/iFile";
-import { changeIsAccessibleProperty, isAccessible, testAccessiblity } from "./components/accessibilityChecker";
+import { changeIsAccessibleProperty, isAccessible, testAccessiblity } from "./components/MSWordAccessibilityChecker";
 import ProgressBar = require('electron-progressbar');
 import { GCDocsAdapter } from './components/GCDocsAdaptor';
 import { isWordDOC, isPDFDoc } from './components/helpers';

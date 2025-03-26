@@ -1,4 +1,4 @@
-import { isAccessible } from "./accessibilityChecker";
+import { isAccessible } from "./MSWordAccessibilityChecker";
 import { SystemAdapter } from "./systemAdaptor";
 import { AccessibilityStatus } from "./helpers";
 import * as fs from 'fs';
