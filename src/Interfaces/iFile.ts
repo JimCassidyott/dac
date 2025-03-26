@@ -1,4 +1,4 @@
-import { AccessibilityStatus } from "../components/accessibilityChecker";
+import { AccessibilityStatus } from "../components/helpers";
 export interface IFile {
     name: string;
     path: string;

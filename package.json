@@ -54,6 +54,7 @@
   "dependencies": {
     "@types/cheerio": "^0.22.35",
     "@types/electron-progressbar": "^1.2.7",
+    "@types/offscreencanvas": "^2019.7.3",
     "adm-zip": "^0.5.15",
     "bootstrap": "^5.3.3",
     "chart.js": "^4.4.4",

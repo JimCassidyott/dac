@@ -5,7 +5,7 @@ import { IFileSystem } from '../Interfaces/IFileSystem';
 import { IFile } from '../Interfaces/iFile';
 import { IFolder } from '../Interfaces/iFolder';
 import { IFolderContents } from '../Interfaces/iFolderContents';
-import { AccessibilityStatus } from "../components/accessibilityChecker";
+import { AccessibilityStatus } from "../components/helpers";
 
 /**
  * An implementation of the IFileSystem interface for interacting with the System file system.

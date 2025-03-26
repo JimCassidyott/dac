@@ -43,3 +43,11 @@ export async function isPDFDoc(filePath: string): Promise<boolean> {
   }
   return true;
 }
+
+export enum AccessibilityStatus {
+  Accessible = "Accessible",
+  NotAccessible = "Not Accessible",
+  Untested = "Untested",
+  NotApplicable = "Not Applicable",
+  ManualTestingRequired = "Manual Testing Required" //pdf specific
+}

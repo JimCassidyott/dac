@@ -11,7 +11,7 @@ const cheerio = require('cheerio');
 import { MSWordComments } from '../components/MSWordComments';
 import { Heading, HeadingError, HeadingErrorCode } from './Headings';
 import { testHeadings } from './MSWordHeaders';
-import { isWordDOC } from './helpers';
+import { isWordDOC, AccessibilityStatus } from './helpers';
 
 const errorCodesToIgnore = [
     'WCAG2AAA.Principle3.Guideline3_1.3_1_1.H57.3.Lang',
@@ -69,13 +69,13 @@ export async function readCustomPropertiesXml(filePath: string): Promise<any | u
     }
 }
 
-export enum AccessibilityStatus {
-  Accessible = "Accessible",
-  NotAccessible = "Not Accessible",
-  Untested = "Untested",
-  NotApplicable = "Not Applicable",
-  ManualTestingRequired = "Manual Testing Required" //pdf specific
-}
+// export enum AccessibilityStatus {
+//   Accessible = "Accessible",
+//   NotAccessible = "Not Accessible",
+//   Untested = "Untested",
+//   NotApplicable = "Not Applicable",
+//   ManualTestingRequired = "Manual Testing Required" //pdf specific
+// }
 
 /**
  * Asynchronously checks the accessibility of a Word document by reading its custom properties XML.

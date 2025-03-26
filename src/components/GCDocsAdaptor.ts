@@ -8,7 +8,7 @@ import { IFolderContents } from '../Interfaces/iFolderContents';
 import FormData = require('form-data');
 import * as fsSync from 'fs';
 import { request } from 'undici';
-import { AccessibilityStatus } from "../components/accessibilityChecker";
+import { AccessibilityStatus } from "../components/helpers";
 import { isPDFDoc, isWordDOC } from './helpers';
 
 /**

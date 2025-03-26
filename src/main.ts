@@ -3,12 +3,13 @@ import * as pathModule from "path";
 import { SystemAdapter } from './components/systemAdaptor';
 import { IFolderContents } from "./Interfaces/iFolderContents";
 import { IFile } from "./Interfaces/iFile";
-import { changeIsAccessibleProperty, isAccessible, AccessibilityStatus, testAccessiblity } from "./components/accessibilityChecker";
+import { changeIsAccessibleProperty, isAccessible, testAccessiblity } from "./components/accessibilityChecker";
 import ProgressBar = require('electron-progressbar');
 import { GCDocsAdapter } from './components/GCDocsAdaptor';
 import { isWordDOC, isPDFDoc } from './components/helpers';
 import * as PDFProperties from './components/PDFProperties';
 import * as fs from 'fs';
+import { AccessibilityStatus } from "./components/helpers";
 
 let mainWindow: Electron.BrowserWindow = null;
 function createWindow() {
