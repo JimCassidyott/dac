@@ -1,7 +1,7 @@
 import * as fs from 'fs/promises';
 import { isPDFDoc } from './helpers';
 import { PDFDocument } from 'pdf-lib';
-import { AccessibilityStatus } from './accessibilityChecker';
+import { AccessibilityStatus } from './helpers';
 import { getBasicUserInfo } from './user';
 import { GCDocsAdapter } from './GCDocsAdaptor';
 

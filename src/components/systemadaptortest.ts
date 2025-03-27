@@ -1,6 +1,6 @@
-import { isAccessible, AccessibilityStatus } from "./accessibilityChecker";
+import { isAccessible } from "./MSWordAccessibilityChecker";
 import { SystemAdapter } from "./systemAdaptor";
-import { isWordDOC } from "./helpers";
+import { AccessibilityStatus } from "./helpers";
 import * as fs from 'fs';
 
 // Get the file name from the command-line arguments
