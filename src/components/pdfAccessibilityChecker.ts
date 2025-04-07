@@ -242,6 +242,15 @@ export class PdfAccessibilityChecker {
                 report.issues.push(imageAltTextResult.issue);
                 report.passed = false;
             }
+
+            // Test for form field labels (WCAG 3.3.2) if the document is a form
+            if (documentType.isForm) {
+                const formFieldLabelsResult = await WcagTests.testFormFieldLabels(pdfPath);
+                if (!formFieldLabelsResult.passed && formFieldLabelsResult.issue) {
+                    report.issues.push(formFieldLabelsResult.issue);
+                    report.passed = false;
+                }
+            }
             
             // Add pending tests
             report.pendingTests = [
@@ -689,8 +698,11 @@ export class TextExtractor {
             // Process each page
             for (let pageNum = 1; pageNum <= pdfDocument.numPages; pageNum++) {
                 const page = await pdfDocument.getPage(pageNum);
-                const pageTextItems = await this.extractTextFromPage(page, pageNum);
-                allTextItems.push(...pageTextItems);
+                
+                // Extract text from the page
+                const extractionResult = await this.extractTextFromPage(page, pageNum);
+
+                allTextItems.push(...extractionResult);
             }
             
             return allTextItems;
@@ -1080,7 +1092,12 @@ export class WcagTests {
             }
 
             // Check for text without language tags
-            const textWithoutLangTags = textContents.filter(item => !item.hasLangTag && item.text.length > 10);
+            const textWithoutLangTags = textContents.filter(item =>
+                item.detectedLang &&
+                !item.hasLangTag &&
+                // Additional check to ensure the text is substantial enough to warrant language detection
+                item.text.length > 10
+            );
 
             // If we found text without language tags
             if (textWithoutLangTags.length > 0) {
@@ -1228,6 +1245,102 @@ export class WcagTests {
     }
 
     /**
+     * Tests if all form fields in a PDF document have labels (WCAG 3.3.2)
+     * @param pdfPath Path to the PDF file
+     * @returns Promise resolving to an object with test result and optional issue
+     */
+    static async testFormFieldLabels(pdfPath: string): Promise<{ passed: boolean; issue?: AccessibilityIssue }> {
+        try {
+            const pdfLoader = new PdfLoader();
+            const pdfDoc = await PdfLoader.loadWithPdfLib(pdfPath);
+            const form = pdfDoc.getForm();
+            const fields = form.getFields();
+            
+            const fieldsWithoutLabels = fields.filter(field => {
+                // Check for TU (tooltip/user-facing label) entry in the field dictionary
+                const dict = (field as any).acroField.dict;
+                return !dict.has('TU');
+            });
+
+            if (fieldsWithoutLabels.length === 0) {
+                return { passed: true };
+            }
+
+            const fieldNames = fieldsWithoutLabels.map(field => field.getName()).join(', ');
+            return {
+                passed: false,
+                issue: IssueFactory.createIssue(
+                    'WCAG 3.3.2 Labels or Instructions (Level A)',
+                    `Found ${fieldsWithoutLabels.length} form fields without labels: ${fieldNames}`,
+                    'Critical',
+                    'Add labels to all form fields using the TU (tooltip) entry in the field dictionary. This ensures that users understand what information is required for each field.'
+                )
+            };
+        } catch (error) {
+            return {
+                passed: false,
+                issue: IssueFactory.createErrorIssue(
+                    'WCAG 3.3.2 Labels or Instructions (Level A)',
+                    error as Error,
+                    'Critical',
+                    'Unable to check form field labels. Ensure the PDF is not encrypted and is a valid form.'
+                )
+            };
+        }
+    }
+
+    /**
+     * Helper function to extract form fields in their physical order on the page
+     * This is useful for analyzing focus order and meaningful sequence
+     * @param pdfPath Path to the PDF file
+     * @returns Promise resolving to an array of objects containing field info and position
+     */
+    static async extractFormFieldsInPhysicalOrder(pdfPath: string): Promise<Array<{
+        name: string;
+        type: string;
+        page: number;
+        rect: { x: number; y: number; width: number; height: number };
+        hasLabel: boolean;
+    }>> {
+        try {
+            const pdfDoc = await PdfLoader.loadWithPdfLib(pdfPath);
+            const form = pdfDoc.getForm();
+            const fields = form.getFields();
+            
+            const fieldPositions = await Promise.all(fields.map(async field => {
+                const dict = (field as any).acroField.dict;
+                const rect = dict.lookup('Rect')?.asArray()?.map((x: any) => x.asNumber()) || [0, 0, 0, 0];
+                const pageRef = dict.lookup('P'); // Get the page reference
+                const pageIndex = pageRef ? pdfDoc.getPages().findIndex(page => page.ref === pageRef) : 0;
+                
+                return {
+                    name: field.getName(),
+                    type: field.constructor.name.replace('PDFField', ''),
+                    page: pageIndex,
+                    rect: {
+                        x: rect[0],
+                        y: rect[1],
+                        width: rect[2] - rect[0],
+                        height: rect[3] - rect[1]
+                    },
+                    hasLabel: dict.has('TU')
+                };
+            }));
+
+            // Sort fields by page number first, then by y-coordinate (top to bottom),
+            // and finally by x-coordinate (left to right)
+            return fieldPositions.sort((a, b) => {
+                if (a.page !== b.page) return a.page - b.page;
+                if (Math.abs(a.rect.y - b.rect.y) > 10) return b.rect.y - a.rect.y; // Reverse y-order since PDF coordinates start from bottom
+                return a.rect.x - b.rect.x;
+            });
+        } catch (error) {
+            console.error('Error extracting form fields:', error);
+            return [];
+        }
+    }
+
+    /**
      * Determines whether a PDF file is a form or a regular document
      * @param pdfPath Path to the PDF file
      * @returns Object containing isForm, isDocument flags, confidence level, and details
@@ -1250,16 +1363,13 @@ export class WcagTests {
             // Check if the PDF is encrypted - this can affect our ability to detect forms
             const isEncrypted = await PdfLoader.isEncrypted(pdfPath);
             
-            // Special case for 1383e.pdf - we know it's a form but standard detection may fail
-            // This is a known form that requires special handling due to encryption or other issues
-            if (pdfPath.toLowerCase().includes('1383e.pdf')) {
-                return {
-                    isForm: true,
-                    isDocument: false,
-                    confidence: 100,
-                    details: ["Identified as a form based on filename (1383e.pdf)"]
-                };
-            }
+            // IMPORTANT: Encrypted PDFs require special consideration
+            // Some encrypted PDFs may be forms but standard detection methods might fail because:
+            // 1. The encryption may prevent pdf-lib from accessing form fields
+            // 2. The encryption may block pdf.js from reading annotations
+            // 3. The encryption level and permissions affect which operations are allowed
+            // Strategy: We try multiple detection methods (pdf-lib first, then pdf.js)
+            // and fall back to treating it as a regular document if both methods fail
             
             // STEP 1: Try to detect form fields using pdf-lib
             // This is the primary and most reliable method for detecting forms
@@ -1341,16 +1451,16 @@ export class WcagTests {
     }
 
     /**
-     * Placeholder function for testing WCAG 2.4.5 Multiple Ways compliance
-     * This is a placeholder that will be implemented after gathering requirements
-     * from sight-impaired users about what constitutes acceptable navigation
+     * Placeholder function for testing WCAG 2.4.3 Focus Order compliance
+     * This criterion ensures that the order of focus when navigating through interactive elements
+     * is logical and intuitive for keyboard and screen reader users
      * @returns Information about the pending test
      */
-    static getPendingMultipleWaysTest(): PendingTest {
+    static getPendingFocusOrderTest(): PendingTest {
         return {
-            criterion: "WCAG 2.4.5 Multiple Ways (Level AA)",
-            reason: "We are aware of this criterion and are actively working on it. We need to gather requirements from sight-impaired users about what constitutes acceptable navigation in both forms and documents before implementing this test.",
-            status: "In Progress - Requirements Gathering"
+            criterion: "WCAG 2.4.3 Focus Order (Level A)",
+            reason: "We are planning to implement this test. This criterion ensures that the order of focus when navigating through interactive elements in a PDF (like form fields and links) follows a sequence that preserves meaning and operability. This is essential for blind users who navigate documents using keyboard commands with screen readers.",
+            status: "Planned - Requirements Analysis"
         };
     }
 
@@ -1369,16 +1479,16 @@ export class WcagTests {
     }
 
     /**
-     * Placeholder function for testing WCAG 2.4.3 Focus Order compliance
-     * This criterion ensures that the navigation order through interactive elements
-     * is logical and intuitive for keyboard and screen reader users
+     * Placeholder function for testing WCAG 2.4.5 Multiple Ways compliance
+     * This criterion requires that there is more than one way to locate a webpage within a set of webpages
+     * For PDFs, this would involve checking for the presence of bookmarks, a table of contents, or other navigation aids
      * @returns Information about the pending test
      */
-    static getPendingFocusOrderTest(): PendingTest {
+    static getPendingMultipleWaysTest(): PendingTest {
         return {
-            criterion: "WCAG 2.4.3 Focus Order (Level A)",
-            reason: "We are planning to implement this test. This criterion ensures that the order of focus when navigating through interactive elements in a PDF (like form fields and links) follows a sequence that preserves meaning and operability. This is essential for blind users who navigate documents using keyboard commands with screen readers.",
-            status: "Planned - Requirements Analysis"
+            criterion: "WCAG 2.4.5 Multiple Ways (Level AA)",
+            reason: "We are aware of this criterion and are actively working on it. We need to gather requirements from sight-impaired users about what constitutes acceptable navigation in both forms and documents before implementing this test.",
+            status: "In Progress - Requirements Gathering"
         };
     }
 
@@ -1471,7 +1581,7 @@ export class PdfAccessibilityRunner {
                     IssueFactory.createErrorIssue(
                         "Test Error",
                         error as Error,
-                        "An error occurred while running accessibility tests",
+                        "Unable to determine if the document meets accessibility standards",
                         "Ensure the PDF file is valid and accessible"
                     )
                 ] 
