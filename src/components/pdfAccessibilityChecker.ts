@@ -1601,7 +1601,7 @@ export class AccessibilityReportGenerator {
      * @param pdfPath Path to the PDF file
      * @param outputPath Path to save the report
      */
-    static async generateReport(pdfPath: string, outputPath: string): Promise<void> {
+    static async generateReport(pdfPath: string, outputPath: string): Promise<AccessibilityReport> {
         try {
             console.log(`Generating accessibility report for: ${pdfPath}`);
             
@@ -1655,6 +1655,7 @@ export class AccessibilityReportGenerator {
             
             // Print summary to console
             this.printReportSummary(report);
+            return report;
             
         } catch (error) {
             console.error("Error generating accessibility report:", error);

@@ -4,6 +4,8 @@ import { PDFDocument } from 'pdf-lib';
 import { AccessibilityStatus } from './helpers';
 import { getBasicUserInfo } from './user';
 import { GCDocsAdapter } from './GCDocsAdaptor';
+import { AccessibilityReportGenerator, AccessibilityReport } from './pdfAccessibilityChecker';
+import * as path from 'path';
 
 /**
  * Takes a path to a PDF file and returns a PDFDocument object
@@ -121,9 +123,12 @@ export async function testPDFAccessibility(filePath: string, fileSource: string)
       filePath = await adapter.downloadDocumentContent(filePath);
     }
     // do testing here
-  
+    let outPath = `./temp/PDFTestResults/${path.basename(filePath).replace(/\.pdf$/i, '')}-accessibility-report.json`;
+    let result: AccessibilityReport = await AccessibilityReportGenerator.generateReport(filePath, outPath);
+    let accStatus: AccessibilityStatus = result.passed ? AccessibilityStatus.ManualTestingRequired : AccessibilityStatus.NotAccessible; 
+    
     // once automated testing is done set isAccessible property as AccessibilityStatus.RequiresManualTesting
-    let fileIsAccessible = await updateIsAccessibleProperty(filePath, AccessibilityStatus.ManualTestingRequired);
+    let fileIsAccessible = await updateIsAccessibleProperty(filePath, accStatus);
     return {filePath, fileIsAccessible};
   }
   catch (error) {
