@@ -1,5 +1,5 @@
 import { Chart } from 'chart.js';
-import { IFolderContents } from './Interfaces/iFolderContents';
+import { IFolderContents } from './Interfaces/IFolderContents';
 
 export interface ElectronAPI {
   getFolderContent(path: string) : IFolderContents,

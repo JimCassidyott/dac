@@ -1,6 +1,6 @@
-import { IFile } from '../Interfaces/iFile';
-import { IFolder } from '../Interfaces/iFolder';
-import { IFolderContents } from '../Interfaces/iFolderContents';
+import { IFile } from '../Interfaces/IFile';
+import { IFolder } from '../Interfaces/IFolder';
+import { IFolderContents } from '../Interfaces/IFolderContents';
 import { IFileSystem } from '../Interfaces/IFileSystem';
 export class FileSystem {
     fileSystemAdapter: IFileSystem;

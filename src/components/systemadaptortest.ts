@@ -76,8 +76,8 @@ const filePath = '../../x';
 //     console.error(err);
 // });
 
-import { IFolderContents } from "../Interfaces/iFolderContents";
-import { IFile } from "../Interfaces/iFile";
+import { IFolderContents } from "../Interfaces/IFolderContents";
+import { IFile } from "../Interfaces/IFile";
 
 async function fetchFolderContents(path: string): Promise<any> {
     try {

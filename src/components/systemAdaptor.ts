@@ -2,9 +2,9 @@ import * as fsSync from 'fs';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import { IFileSystem } from '../Interfaces/IFileSystem';
-import { IFile } from '../Interfaces/iFile';
-import { IFolder } from '../Interfaces/iFolder';
-import { IFolderContents } from '../Interfaces/iFolderContents';
+import { IFile } from '../Interfaces/IFile';
+import { IFolder } from '../Interfaces/IFolder';
+import { IFolderContents } from '../Interfaces/IFolderContents';
 import { AccessibilityStatus } from "../components/helpers";
 
 /**
