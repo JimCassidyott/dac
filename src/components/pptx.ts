@@ -161,15 +161,112 @@ async function checkPowerPointTableHeaders(filePath: string) {
   }
 }
 
+async function checkAltTextAllVisuals(filePath: string) {
+  const zip = await unzipper.Open.file(filePath);
+  const slideFiles = zip.files.filter(f => f.path.startsWith("ppt/slides/slide") && f.path.endsWith(".xml"));
+
+  for (const slideFile of slideFiles) {
+      const content = await slideFile.buffer();
+      const xml = await parseStringPromise(content.toString());
+      const slideIndex = slideFiles.indexOf(slideFile) + 1;
+
+      const tree = xml["p:sld"]["p:cSld"][0]["p:spTree"][0];
+
+      // Check <p:pic> (Images)
+      const pics = tree["p:pic"] || [];
+      pics.forEach((item: any, index: number) => {
+          const alt = item["p:nvPicPr"]?.[0]["p:cNvPr"]?.[0]?.["$"]?.descr || "";
+          if (!alt.trim()) {
+              console.warn(`Slide ${slideIndex}, Image ${index + 1}: Missing alt text.`);
+          }
+      });
+
+      // Check <p:sp> (Shapes)
+      const shapes = tree["p:sp"] || [];
+      shapes.forEach((item: any, index: number) => {
+          const alt = item["p:nvSpPr"]?.[0]["p:cNvPr"]?.[0]?.["$"]?.descr || "";
+          if (!alt.trim()) {
+              console.warn(`Slide ${slideIndex}, Shape ${index + 1}: Missing alt text.`);
+          }
+      });
+
+      // Check <p:graphicFrame> (SmartArt, Tables, Charts)
+      const frames = tree["p:graphicFrame"] || [];
+      frames.forEach((item: any, index: number) => {
+          const alt = item["p:nvGraphicFramePr"]?.[0]["p:cNvPr"]?.[0]?.["$"]?.descr || "";
+          const graphicDataUri = item["a:graphic"]?.[0]["a:graphicData"]?.[0]["$"]?.uri || "";
+
+          let type = "Graphic";
+          if (graphicDataUri.includes("chart")) type = "Chart";
+          else if (graphicDataUri.includes("table")) type = "Table";
+          else if (graphicDataUri.includes("diagram")) type = "SmartArt";
+
+          if (!alt.trim()) {
+              console.warn(`Slide ${slideIndex}, ${type} ${index + 1}: Missing alt text.`);
+          }
+      });
+  }
+}
+
+async function checkRawURLLinks(filePath: string) {
+  const zip = await unzipper.Open.file(filePath);
+
+  const slideFiles = zip.files.filter(f => f.path.startsWith("ppt/slides/slide") && f.path.endsWith(".xml"));
+  const relsFiles = zip.files.filter(f => f.path.startsWith("ppt/slides/_rels/") && f.path.endsWith(".xml.rels"));
+
+  for (const slideFile of slideFiles) {
+    const slideIndex = slideFiles.indexOf(slideFile) + 1;
+    const relsFile = relsFiles.find(r => r.path.includes(`slide${slideIndex}.xml.rels`));
+
+    // Parse .rels file for hyperlink mappings
+    let relMap: Record<string, string> = {};
+    if (relsFile) {
+      const relContent = await relsFile.buffer();
+      const relXml = await parseStringPromise(relContent.toString());
+      const relationships = relXml.Relationships?.Relationship || [];
+
+      relMap = Object.fromEntries(
+        relationships
+          .filter((r: any) => r.$.Type.includes("hyperlink"))
+          .map((r: any) => [r.$.Id, r.$.Target])
+      );
+    }
+
+    // Parse slide XML and look for hyperlinks
+    const content = await slideFile.buffer();
+    const xml = await parseStringPromise(content.toString());
+    const shapes = xml["p:sld"]["p:cSld"][0]["p:spTree"][0]["p:sp"] || [];
+
+    for (const shape of shapes) {
+      const paragraphs = shape["p:txBody"]?.[0]["a:p"] || [];
+      for (const para of paragraphs) {
+        const runs = para["a:r"] || [];
+        for (const run of runs) {
+          const text = run["a:t"]?.[0]?.trim();
+          const linkId = run["a:rPr"]?.[0]["a:hlinkClick"]?.[0]?.["$"]?.["r:id"];
+          const target = linkId ? relMap[linkId] : null;
+
+          if (text && target) {
+            if (text === target || text.startsWith("http")) {
+              console.warn(`Slide ${slideIndex}: Link text is a raw URL -> "${text}". Use descriptive text instead.`);
+            }
+          }
+        }
+      }
+    }
+  }
+}
 
 
 async function runPPTXTests() {
-  await checkAltText("/home/tharindu/Downloads/Versioning.pptx");
+  // await checkAltText("/home/tharindu/Downloads/Versioning.pptx");
   await checkSlideTitle("/home/tharindu/Downloads/Versioning.pptx");
   await checkContrast("/home/tharindu/Downloads/Versioning.pptx");
   // await checkReadingOrder("/home/tharindu/Downloads/Versioning.pptx");
   await checkEmptySlides("/home/tharindu/Downloads/Versioning.pptx");
   await checkPowerPointTableHeaders("/home/tharindu/Downloads/Versioning.pptx");
+  await checkAltTextAllVisuals("/home/tharindu/Downloads/Versioning.pptx");
+  await checkRawURLLinks("/home/tharindu/Downloads/Versioning.pptx");
 }
 
 runPPTXTests();
