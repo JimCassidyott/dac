@@ -1,8 +1,8 @@
 import { app, BrowserWindow, dialog, ipcMain, IpcMainInvokeEvent, Menu, MenuItem, MenuItemConstructorOptions, Notification } from "electron";
 import * as pathModule from "path";
 import { SystemAdapter } from './components/systemAdaptor';
-import { IFolderContents } from "./Interfaces/iFolderContents";
-import { IFile } from "./Interfaces/iFile";
+import { IFolderContents } from "./Interfaces/IFolderContents";
+import { IFile } from "./Interfaces/IFile";
 import { changeIsAccessibleProperty, isAccessible, testAccessiblity } from "./components/MSWordAccessibilityChecker";
 import ProgressBar = require('electron-progressbar');
 import { GCDocsAdapter } from './components/GCDocsAdaptor';
