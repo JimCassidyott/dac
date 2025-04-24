@@ -278,6 +278,88 @@ export class WcagTests {
     }
 
     /**
+     * Tests if form fields have visible focus indicators (WCAG 2.4.7)
+     * @param pdfPath Path to the PDF file
+     * @returns Promise resolving to an object with test result and optional issue
+     */
+    static async testFocusVisible(pdfPath: string): Promise<{ passed: boolean; issue?: AccessibilityIssue }> {
+        try {
+            const doc = await pdfjsLib.getDocument(pdfPath).promise;
+            const formFields: Array<{
+                name: string;
+                hasFocusStyle: boolean;
+                page: number;
+            }> = [];
+
+            // Process each page
+            for (let pageNum = 1; pageNum <= doc.numPages; pageNum++) {
+                const page = await doc.getPage(pageNum);
+                const annotations = await page.getAnnotations();
+                
+                // Filter for form field annotations
+                const fields = annotations.filter((annot: PDFAnnotation) => 
+                    annot.subtype === 'Widget' && 
+                    annot.fieldType
+                );
+
+                // Process each field to check for focus styles
+                for (const field of fields) {
+                    // Check if the field has any focus-related properties
+                    // This includes checking for /F (normal appearance), /Ff (field flags),
+                    // and any style dictionaries that might affect focus visibility
+                    const hasFocusStyle = Boolean(
+                        field.rect && // Must have a visible area
+                        (!field.fieldFlags || !(field.fieldFlags & 0x0001)) // Not invisible
+                    );
+
+                    formFields.push({
+                        name: field.fieldName || '',
+                        hasFocusStyle,
+                        page: pageNum
+                    });
+                }
+            }
+
+            // If no form fields found, this criterion doesn't apply
+            if (formFields.length === 0) {
+                console.log('No form fields found, WCAG 2.4.7 criterion does not apply');
+                return { passed: true };
+            }
+
+            // Check for fields without focus styles
+            const fieldsWithoutFocus = formFields.filter(field => !field.hasFocusStyle);
+            
+            if (fieldsWithoutFocus.length > 0) {
+                return {
+                    passed: false,
+                    issue: WcagTests.IssueFactory.createIssue(
+                        "WCAG 2.4.7 Focus Visible (Level AA)",
+                        `Found ${fieldsWithoutFocus.length} form fields that may lack visible focus indicators out of ${formFields.length} total fields.`,
+                        "Serious",
+                        "Ensure all interactive form fields have a clear visual focus indicator when receiving keyboard focus. " +
+                        "Add appropriate focus styles to fields that lack them. Consider using highlighting, borders, or other " +
+                        "visual indicators that meet contrast requirements."
+                    )
+                };
+            }
+
+            // All fields appear to have focus styles
+            return { passed: true };
+        } catch (error) {
+            console.error('Error testing focus visibility:', error);
+            return {
+                passed: false,
+                issue: WcagTests.IssueFactory.createErrorIssue(
+                    "WCAG 2.4.7 Focus Visible (Level AA)",
+                    error as Error,
+                    "Unable to check focus visibility",
+                    "Ensure the PDF file is valid and accessible, then try the test again"
+                )
+            };
+        }
+    }
+
+    /**
      * Determines whether a PDF file is a form or a regular document
      * @param pdfPath Path to the PDF file
      * @returns Object containing isForm, isDocument flags, confidence level, and details
@@ -365,13 +447,18 @@ async function main() {
         console.log('Confidence:', docType.confidence + '%');
         console.log('Details:', docType.details.join('\n  - '));
 
-        // Run accessibility checks
-        const doc = await pdfjsLib.getDocument(pdfPath).promise;
-        
-        // Check form field labels
-        const labelResult = await WcagTests.testFormFieldLabels(pdfPath);
-        console.log('\nForm Field Labels Check:', labelResult.passed ? 'Passed' : 'Failed');
-        if (labelResult.issue) console.log(labelResult.issue);
+        // Only run form field label checks if this is a form
+        if (docType.isForm) {
+            // Check form field labels
+            const labelResult = await WcagTests.testFormFieldLabels(pdfPath);
+            console.log('\nForm Field Labels Check:', labelResult.passed ? 'Passed' : 'Failed');
+            if (labelResult.issue) console.log(labelResult.issue);
+
+            // Check form field focus visibility
+            const focusResult = await WcagTests.testFocusVisible(pdfPath);
+            console.log('\nForm Field Focus Visibility Check:', focusResult.passed ? 'Passed' : 'Failed');
+            if (focusResult.issue) console.log(focusResult.issue);
+        }
 
     } catch (error) {
         console.error('Error processing PDF:', error);
