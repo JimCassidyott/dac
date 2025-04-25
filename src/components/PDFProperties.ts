@@ -4,7 +4,7 @@ import { PDFDocument } from 'pdf-lib';
 import { AccessibilityStatus } from './helpers';
 import { getBasicUserInfo } from './user';
 import { GCDocsAdapter } from './GCDocsAdaptor';
-import { AccessibilityReportGenerator, AccessibilityReport } from './pdfAccessibilityChecker';
+import { PdfAccessibilityChecker, AccessibilityReport } from './pdfAccessibilityChecker';
 import * as path from 'path';
 
 /**
@@ -124,7 +124,7 @@ export async function testPDFAccessibility(filePath: string, fileSource: string)
     }
     // do testing here
     let outPath = `./temp/PDFTestResults/${path.basename(filePath).replace(/\.pdf$/i, '')}-accessibility-report.json`;
-    let result: AccessibilityReport = await AccessibilityReportGenerator.generateReport(filePath, outPath);
+    let result: AccessibilityReport = await PdfAccessibilityChecker.checkAccessibility(filePath,);
     let accStatus: AccessibilityStatus = result.passed ? AccessibilityStatus.ManualTestingRequired : AccessibilityStatus.NotAccessible; 
     
     // once automated testing is done set isAccessible property as AccessibilityStatus.RequiresManualTesting
