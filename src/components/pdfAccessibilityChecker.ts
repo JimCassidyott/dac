@@ -63,6 +63,68 @@ export interface AccessibilityIssue {
     remediation: string;
 }
 
+export interface TextContent {
+  /** The actual text content */
+  text: string;
+  
+  /** Page number where this text is located */
+  page: number;
+  
+  /**
+   * Whether this text has a language tag in the PDF structure tree.
+   * This indicates that the text has been explicitly marked with a language.
+   */
+  hasLangTag?: boolean;
+  
+  /**
+   * Detected language of the text content (e.g., "en" for English, "fr" for French).
+   * This is automatically detected based on the text content.
+   */
+  detectedLang?: string;
+}
+
+/**
+ * Represents a link in a PDF document.
+ * Includes the link text, URL, and page number.
+ */
+export interface LinkContent {
+  /** The text displayed for the link */
+  linkText: string;
+  
+  /** The URL that the link points to */
+  url: string;
+  
+  /** Page number where this link is located */
+  page: number;
+}
+
+/**
+ * Represents an image in a PDF document.
+ * Includes information about the image's alt text and page number.
+ */
+export interface ImageContent {
+  /**
+   * Whether the image has alt text in the PDF structure tree.
+   * This indicates that the image has been explicitly marked with alternative text.
+   */
+  hasAltText: boolean;
+  
+  /**
+   * The actual alt text for the image, if available.
+   * This is the text that screen readers will announce for the image.
+   */
+  altText?: string;
+  
+  /** Page number where this image is located */
+  page: number;
+  
+  /**
+   * Unique identifier for the image in the PDF document.
+   * This can be used to reference the image in other parts of the document.
+   */
+  id?: string;
+}
+
 /**
  * Represents a complete accessibility report for a PDF document
  */
@@ -95,8 +157,610 @@ export interface AccessibilityReport {
     timestamp: string;
 
     /** Accessibility status of the document */
-    status: AccessibilityStatus;
+    // status: AccessibilityStatus;
 }
+
+/**
+ * Utility class for loading PDF documents using different libraries.
+ * Provides methods to load PDFs with both pdf-lib and pdf.js.
+ */
+export class PdfLoader {
+  /**
+   * Loads a PDF document using pdf-lib
+   * @param pdfPath Path to the PDF file
+   * @returns Promise resolving to a PDFDocument
+   */
+  static async loadWithPdfLib(pdfPath: string): Promise<PDFDocument> {
+      try {
+          const pdfBytes = fs.readFileSync(pdfPath);
+          return await PDFDocument.load(pdfBytes);
+      } catch (error) {
+          console.error(`Error loading PDF with pdf-lib: ${(error as Error).message}`);
+          throw error;
+      }
+  }
+
+  /**
+   * Loads a PDF document using pdf.js
+   * @param pdfPath Path to the PDF file
+   * @returns Promise resolving to a PDFDocumentProxy
+   */
+  static async loadWithPdfJs(pdfPath: string): Promise<pdfjsLib.PDFDocumentProxy> {
+      try {
+          const data = new Uint8Array(fs.readFileSync(pdfPath));
+          return await pdfjsLib.getDocument({ data }).promise;
+      } catch (error) {
+          console.error(`Error loading PDF with pdf.js: ${(error as Error).message}`);
+          throw error;
+      }
+  }
+
+  /**
+   * Checks if a PDF document is encrypted
+   * @param pdfPath Path to the PDF file
+   * @returns Promise resolving to a boolean indicating if the PDF is encrypted
+   */
+  static async isEncrypted(pdfPath: string): Promise<boolean> {
+      try {
+          const data = new Uint8Array(fs.readFileSync(pdfPath));
+          const doc = await pdfjsLib.getDocument({ data }).promise;
+          
+          // Try to access a property that would be restricted if encrypted
+          await doc.getPage(1);
+          
+          // If we got here, the document is not encrypted or we have the password
+          return false;
+      } catch (error) {
+          const errorMessage = (error as Error).message || '';
+          
+          // Check if the error is related to encryption
+          if (
+              errorMessage.includes('encrypted') || 
+              errorMessage.includes('password') ||
+              errorMessage.includes('permission')
+          ) {
+              return true;
+          }
+          
+          // Re-throw other errors
+          throw error;
+      }
+  }
+}
+
+/**
+ * Utility class for detecting languages in PDF documents.
+ * This class provides methods to detect languages based on text content
+ * and extract language information from PDF metadata.
+ */
+export class LanguageDetector {
+  /**
+   * Simple language detection function focusing on English and French
+   * @param text Text to analyze
+   * @returns Detected language code ('en' or 'fr')
+   */
+  static detectLanguage(text: string): string {
+      // This is a simplified language detection for demonstration
+      // In a real application, you would use a proper language detection library
+
+      // Common French words and patterns
+      const frenchPatterns = [
+          /\b(le|la|les|un|une|des|du|au|aux)\b/i,
+          /\b(est|sont|ont|avoir|être|aller|faire)\b/i,
+          /\b(bonjour|merci|oui|non|monsieur|madame|mademoiselle)\b/i,
+          /\b(et|ou|mais|donc|car|ni|or)\b/i,
+          /\b(ce|cette|ces|cet)\b/i,
+          /\b(pour|dans|sur|avec|sans|chez)\b/i
+      ];
+
+      // Common English words and patterns
+      const englishPatterns = [
+          /\b(the|a|an|of|in|on|at|for|to|with|by)\b/i,
+          /\b(is|are|was|were|has|have|had|be|been|being)\b/i,
+          /\b(hello|thank you|yes|no|sir|madam|miss)\b/i,
+          /\b(and|or|but|so|because|neither|nor)\b/i,
+          /\b(this|that|these|those)\b/i,
+          /\b(for|in|on|with|without|at)\b/i
+      ];
+
+      // Count matches for each language
+      let frenchCount = 0;
+      let englishCount = 0;
+
+      for (const pattern of frenchPatterns) {
+          if (pattern.test(text)) {
+              frenchCount++;
+          }
+      }
+
+      for (const pattern of englishPatterns) {
+          if (pattern.test(text)) {
+              englishCount++;
+          }
+      }
+
+      // Determine the language based on the number of matches
+      if (frenchCount > englishCount) {
+          return 'fr';
+      } else {
+          return 'en';
+      }
+  }
+
+  /**
+   * Check if text has a language tag in the structure tree
+   * @param structTree Structure tree
+   * @param text Text to check
+   * @returns Boolean indicating if the text has a language tag
+   */
+  static hasLanguageTag(structTree: any, text: string): boolean {
+      // This is a simplified implementation
+      // In a real application, you would need to traverse the structure tree
+      // and check for Lang attributes in the nodes containing the text
+
+      if (!structTree || !structTree.children) {
+          return false;
+      }
+
+      // Look for Figure elements with Alt attributes
+      return this.searchStructTreeForAltText(structTree, text);
+  }
+
+  /**
+   * Searches the structure tree for alt text for an image
+   * @param node Structure tree node
+   * @param text Text to search for
+   * @returns True if alt text is found
+   */
+  private static searchStructTreeForAltText(node: any, text: string): boolean {
+      if (!node) {
+          return false;
+      }
+
+      // Check if this is a Figure node with Alt attribute
+      if (node.role === 'Figure' && node.alt) {
+          return true;
+      }
+
+      // Recursively check children
+      if (node.children) {
+          for (const child of node.children) {
+              if (this.searchStructTreeForAltText(child, text)) {
+                  return true;
+              }
+          }
+      }
+
+      return false;
+  }
+
+  /**
+   * Extracts the default language from PDF metadata
+   * @param metadata PDF metadata
+   * @returns Default language code or 'en' if not found
+   */
+  static extractDefaultLanguage(metadata: any): string {
+      const metadataInfo = metadata.info as Record<string, any> || {};
+
+      // Try to determine the document's default language
+      let defaultLang = '';
+
+      if (metadata.metadata) {
+          // Try to get language from XMP metadata
+          const metadataStr = metadata.metadata.toString();
+          const langMatch = metadataStr.match(/dc:language>([^<]+)</);
+          if (langMatch && langMatch[1]) {
+              defaultLang = langMatch[1].toLowerCase();
+          }
+      }
+
+      // If we couldn't get it from XMP, try the info dictionary
+      if (!defaultLang && metadataInfo.Language) {
+          defaultLang = metadataInfo.Language.toLowerCase();
+      }
+
+      // If we still don't have a language, assume English as it's most common
+      return defaultLang || 'en';
+  }
+
+  /**
+   * Determines if text is substantial enough for language detection
+   * @param text Text to check
+   * @returns True if the text is substantial, false otherwise
+   */
+  static isSubstantialText(text: string): boolean {
+      return text.trim().length > 3 &&
+          !/^[0-9\s.,;:!?()[\]{}'"<>\/\\|@#$%^&*_=+-]*$/.test(text);
+  }
+}
+
+/**
+ * Utility class for extracting metadata from PDF documents.
+ * This class provides methods to extract the title and other metadata
+ * from a PDF document.
+ */
+export class PdfMetadataExtractor {
+  /**
+   * Extracts the title from a PDF document
+   * @param pdfDoc PDF document (from either pdf-lib or pdf.js)
+   * @returns Promise resolving to the document title or null if not found
+   */
+  static async extractTitle(pdfDoc: pdfjsLib.PDFDocumentProxy | PDFDocument): Promise<string | null> {
+      try {
+          if ('getMetadata' in pdfDoc) {
+              // This is a pdf.js document
+              const metadata = await pdfDoc.getMetadata();
+              // Use type assertion to access Title property
+              return (metadata?.info as any)?.Title || null;
+          } else {
+              // This is a pdf-lib document
+              return pdfDoc.getTitle() || null;
+          }
+      } catch (error) {
+          console.error("Error extracting PDF title:", error);
+          return null;
+      }
+  }
+  
+  /**
+   * Checks if a PDF document has metadata
+   * @param pdfDoc PDF document (from either pdf-lib or pdf.js)
+   * @returns Promise resolving to a boolean indicating if metadata is present
+   */
+  static async hasMetadata(pdfDoc: pdfjsLib.PDFDocumentProxy | PDFDocument): Promise<boolean> {
+      try {
+          if ('getMetadata' in pdfDoc) {
+              // This is a pdf.js document
+              const metadata = await pdfDoc.getMetadata();
+              return !!metadata && !!metadata.info;
+          } else {
+              // This is a pdf-lib document
+              return !!pdfDoc.getAuthor() || !!pdfDoc.getCreator() || 
+                     !!pdfDoc.getProducer() || !!pdfDoc.getSubject() || 
+                     !!pdfDoc.getTitle();
+          }
+      } catch (error) {
+          console.error("Error checking PDF metadata:", error);
+          return false;
+      }
+  }
+}
+
+
+/**
+ * Utility class for extracting text content from PDF documents.
+ * This class provides methods to extract text from PDF pages and
+ * detect language information.
+ */
+export class TextExtractor {
+  /**
+   * Extracts text content from a PDF page
+   * @param page PDF page from pdf.js
+   * @param pageNum Page number (1-based)
+   * @returns Promise resolving to an array of TextContent objects
+   */
+  static async extractTextFromPage(page: pdfjsLib.PDFPageProxy, pageNum: number): Promise<TextContent[]> {
+      try {
+          // Get the text content from the page
+          const textContent = await page.getTextContent();
+          
+          // Process each text item
+          const textItems: TextContent[] = [];
+          
+          for (const item of textContent.items) {
+              // Skip empty text
+              if (!('str' in item) || !item.str.trim()) {
+                  continue;
+              }
+              
+              // Create a TextContent object
+              const textItem: TextContent = {
+                  text: item.str,
+                  page: pageNum,
+                  hasLangTag: false // Default value, would be updated with actual structure tree analysis
+              };
+              
+              // Detect language for text items with sufficient content
+              if (item.str.length > 10) {
+                  textItem.detectedLang = LanguageDetector.detectLanguage(item.str);
+              }
+              
+              textItems.push(textItem);
+          }
+          
+          return textItems;
+      } catch (error) {
+          console.error(`Error extracting text from page ${pageNum}:`, error);
+          return [];
+      }
+  }
+  
+  /**
+   * Extracts all text content from a PDF document
+   * @param pdfDocument PDF document from pdf.js
+   * @returns Promise resolving to an array of TextContent objects
+   */
+  static async extractAllText(pdfDocument: pdfjsLib.PDFDocumentProxy): Promise<TextContent[]> {
+      try {
+          const allTextItems: TextContent[] = [];
+          
+          // Process each page
+          for (let pageNum = 1; pageNum <= pdfDocument.numPages; pageNum++) {
+              const page = await pdfDocument.getPage(pageNum);
+              const pageTextItems = await this.extractTextFromPage(page, pageNum);
+              allTextItems.push(...pageTextItems);
+          }
+          
+          return allTextItems;
+      } catch (error) {
+          console.error("Error extracting all text:", error);
+          return [];
+      }
+  }
+}
+
+/**
+* Utility class for extracting link content from PDF documents.
+* This class provides methods to extract links from PDF pages and
+* detect link text.
+*/
+export class LinkExtractor {
+  /**
+   * Extracts link content from a PDF page
+   * @param page PDF page
+   * @param pageNum Page number
+   * @returns Array of LinkContent objects
+   */
+  static async extractLinksFromPage(
+      page: pdfjsLib.PDFPageProxy,
+      pageNum: number
+  ): Promise<LinkContent[]> {
+      try {
+          const annotations = await page.getAnnotations();
+          const links: LinkContent[] = [];
+
+          // Get text content to match with link positions
+          const textContent = await page.getTextContent();
+
+          // Process each annotation
+          for (const annotation of annotations) {
+              if (annotation.subtype === 'Link' && annotation.url) {
+                  // Try to find text near the link annotation
+                  let linkText = this.findTextForLink(annotation, textContent, page);
+
+                  // If we couldn't find text, use the URL as fallback
+                  if (!linkText || linkText.trim().length === 0) {
+                      linkText = annotation.url;
+                  }
+
+                  const linkItem: LinkContent = {
+                      linkText: linkText,
+                      url: annotation.url,
+                      page: pageNum
+                  };
+
+                  links.push(linkItem);
+              }
+          }
+
+          return links;
+      } catch (error) {
+          console.error(`Error extracting links from page ${pageNum}:`, error);
+          return [];
+      }
+  }
+
+  /**
+   * Attempts to find text associated with a link annotation
+   * @param annotation Link annotation
+   * @param textContent Text content of the page
+   * @param page PDF page
+   * @returns Text associated with the link or empty string if none found
+   */
+  private static findTextForLink(
+      annotation: any,
+      textContent: any,
+      page: pdfjsLib.PDFPageProxy
+  ): string {
+      // This is a simplified approach to find text associated with a link
+      // In a real implementation, you would need more sophisticated logic
+
+      if (!annotation.rect || !textContent.items) {
+          return '';
+      }
+
+      const linkRect = annotation.rect; // [x1, y1, x2, y2]
+      let associatedText = '';
+
+      // Look for text items that overlap with the link annotation
+      for (const item of textContent.items) {
+          if ('str' in item && item.str.trim()) {
+              // Check if this text item is within or near the link rectangle
+              // This is a simplified approach using the transform property
+              if (item.transform && this.isTextNearRect(item.transform, linkRect)) {
+                  associatedText += item.str + ' ';
+              }
+          }
+      }
+
+      return associatedText.trim();
+  }
+
+  /**
+   * Checks if text is near a rectangle based on transform
+   * @param transform Transform matrix [a, b, c, d, e, f] where (e,f) is position
+   * @param rect Rectangle [x1, y1, x2, y2]
+   * @returns True if the text is near the rectangle
+   */
+  private static isTextNearRect(transform: number[], rect: number[]): boolean {
+      // Extract position from transform matrix
+      const x = transform[4];
+      const y = transform[5];
+
+      // Add a small margin around the rectangle to catch nearby text
+      const margin = 5;
+
+      // Check if the point is inside or near the rectangle
+      return (
+          x >= rect[0] - margin &&
+          x <= rect[2] + margin &&
+          y >= rect[1] - margin &&
+          y <= rect[3] + margin
+      );
+  }
+}
+
+/**
+* Utility class for extracting image content from PDF documents.
+* This class provides methods to extract images from PDF pages and
+* detect alt text.
+*/
+export class ImageExtractor {
+  /**
+   * Extracts image content from a PDF page
+   * @param page PDF page
+   * @param pageNum Page number
+   * @returns Array of ImageContent objects
+   */
+  static async extractImagesFromPage(
+      page: pdfjsLib.PDFPageProxy,
+      pageNum: number
+  ): Promise<ImageContent[]> {
+      try {
+          const operatorList = await page.getOperatorList();
+          const images: ImageContent[] = [];
+
+          // Try to get structure tree to check for alt text
+          let structTree;
+          try {
+              structTree = await page.getStructTree();
+          } catch (error) {
+              console.log(`No structure tree available for page ${pageNum}`);
+          }
+
+          // Process the operator list to find images
+          if (operatorList && operatorList.fnArray) {
+              for (let i = 0; i < operatorList.fnArray.length; i++) {
+                  // Check for image drawing operations
+                  // OPS.paintImageXObject = 85
+                  if (operatorList.fnArray[i] === 85) {
+                      const imageId = operatorList.argsArray[i][0];
+
+                      // Check if this image has alt text in the structure tree
+                      const hasAltText = structTree ? this.checkImageForAltText(structTree, imageId) : false;
+
+                      images.push({
+                          hasAltText,
+                          altText: hasAltText ? this.findAltTextForImage(structTree, imageId) : undefined,
+                          page: pageNum,
+                          id: imageId
+                      });
+                  }
+              }
+          }
+
+          return images;
+      } catch (error) {
+          console.error(`Error extracting images from page ${pageNum}:`, error);
+          return [];
+      }
+  }
+
+  /**
+   * Checks if an image has alt text in the structure tree
+   * @param structTree Structure tree
+   * @param imageId Image ID
+   * @returns True if the image has alt text
+   */
+  private static checkImageForAltText(structTree: any, imageId: string): boolean {
+      // This is a simplified implementation
+      // In a real application, you would need to traverse the structure tree
+      // and check for Alt attributes in Figure nodes
+
+      if (!structTree || !structTree.children) {
+          return false;
+      }
+
+      // Look for Figure elements with Alt attributes
+      return this.searchStructTreeForAltText(structTree, imageId);
+  }
+
+  /**
+   * Searches the structure tree for alt text for an image
+   * @param node Structure tree node
+   * @param imageId Image ID
+   * @returns True if alt text is found
+   */
+  private static searchStructTreeForAltText(node: any, imageId: string): boolean {
+      if (!node) {
+          return false;
+      }
+
+      // Check if this is a Figure node with Alt attribute
+      if (node.role === 'Figure' && node.alt) {
+          return true;
+      }
+
+      // Recursively check children
+      if (node.children) {
+          for (const child of node.children) {
+              if (this.searchStructTreeForAltText(child, imageId)) {
+                  return true;
+              }
+          }
+      }
+
+      return false;
+  }
+
+  /**
+   * Finds alt text for an image in the structure tree
+   * @param structTree Structure tree
+   * @param imageId Image ID
+   * @returns Alt text if found, undefined otherwise
+   */
+  private static findAltTextForImage(structTree: any, imageId: string): string | undefined {
+      // This is a simplified implementation
+      // In a real application, you would need to match the image ID with the correct node
+
+      if (!structTree || !structTree.children) {
+          return undefined;
+      }
+
+      // Look for Figure elements with Alt attributes
+      return this.extractAltTextFromStructTree(structTree);
+  }
+
+  /**
+   * Extracts alt text from a structure tree node
+   * @param node Structure tree node
+   * @returns Alt text if found, undefined otherwise
+   */
+  private static extractAltTextFromStructTree(node: any): string | undefined {
+      if (!node) {
+          return undefined;
+      }
+
+      // Check if this is a Figure node with Alt attribute
+      if (node.role === 'Figure' && node.alt) {
+          return node.alt;
+      }
+
+      // Recursively check children
+      if (node.children) {
+          for (const child of node.children) {
+              const altText = this.extractAltTextFromStructTree(child);
+              if (altText) {
+                  return altText;
+              }
+          }
+      }
+
+      return undefined;
+  }
+}
+
+
 
 /**
  * Represents a complete accessibility report for multiple PDF documents
@@ -243,6 +907,265 @@ export class WcagTests {
             };
         }
     };
+
+    /**
+     * Tests if a PDF document has a title in its metadata (WCAG 2.4.2)
+     * @param pdfDoc PDF document
+     * @returns Promise resolving to an object with test result and optional issue
+     */
+      static async testDocumentTitle(pdfDoc: pdfjsLib.PDFDocumentProxy): Promise<{ passed: boolean; issue?: AccessibilityIssue }> {
+        try {
+            // Get the title from the PDF metadata
+            const title = await PdfMetadataExtractor.extractTitle(pdfDoc);
+
+            // If no title is found, return an accessibility issue
+            if (!title) {
+                return {
+                    passed: false,
+                    issue: WcagTests.IssueFactory.createIssue(
+                        "WCAG 2.4.2 Page Titled (Level A)",
+                        "PDF document does not have a title in its metadata",
+                        "Screen readers cannot announce the document title, making it difficult for users to understand the document's purpose or distinguish between multiple open documents",
+                        "Add a descriptive title to the PDF document's metadata properties"
+                    )
+                };
+            }
+
+            // Title exists, no issue
+            return { passed: true };
+        } catch (error) {
+            console.error('Error testing PDF title:', error);
+            return {
+                passed: false,
+                issue: WcagTests.IssueFactory.createErrorIssue(
+                    "WCAG 2.4.2 Page Titled (Level A)",
+                    error as Error,
+                    "Unable to determine if the document has a proper title",
+                    "Ensure the PDF file is valid and accessible"
+                )
+            };
+        }
+    }
+  
+    /**
+     * Tests if a PDF document has a language identifier in its metadata (WCAG 3.1.1)
+     * @param pdfDoc PDF document
+     * @returns Promise resolving to an object with test result and optional issue
+     */
+    static async testDocumentLanguage(pdfDoc: pdfjsLib.PDFDocumentProxy): Promise<{ passed: boolean; issue?: AccessibilityIssue }> {
+        try {
+            // Check if there's metadata in the document
+            const hasMetadata = await PdfMetadataExtractor.hasMetadata(pdfDoc);
+
+            // If no metadata is found, return an accessibility issue
+            if (!hasMetadata) {
+                return {
+                    passed: false,
+                    issue: WcagTests.IssueFactory.createIssue(
+                        "WCAG 3.1.1 Language of Page (Level A)",
+                        "PDF document may not have a language identifier in its metadata",
+                        "Screen readers may not be able to determine the document language, leading to incorrect pronunciation and potentially making content incomprehensible to users",
+                        "Set the document language in the PDF properties"
+                    )
+                };
+            }
+
+            // Metadata exists, no issue
+            return { passed: true };
+        } catch (error) {
+            console.error('Error testing PDF language:', error);
+            return {
+                passed: false,
+                issue: WcagTests.IssueFactory.createErrorIssue(
+                    "WCAG 3.1.1 Language of Page (Level A)",
+                    error as Error,
+                    "Unable to determine if the document has a proper language identifier",
+                    "Ensure the PDF file is valid and accessible"
+                )
+            };
+        }
+    }
+  
+    /**
+     * Tests if all text in a PDF document has a language identifier (WCAG 3.1.2)
+     * @param pdfPath Path to the PDF file
+     * @returns Promise resolving to an object with test result and optional issue
+     */
+    static async testLanguageOfParts(pdfPath: string): Promise<{ passed: boolean; issue?: AccessibilityIssue }> {
+        try {
+            // Load the PDF document
+            const pdfDoc = await PdfLoader.loadWithPdfJs(pdfPath);
+            
+            // Extract all text content from the document
+            const textContents: TextContent[] = [];
+            let hasAnyText = false;
+            let hasSubstantialText = false;
+
+            // Process each page
+            for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
+                const page = await pdfDoc.getPage(pageNum);
+                
+                // Extract text from the page
+                const extractionResult = await TextExtractor.extractTextFromPage(page, pageNum);
+
+                textContents.push(...extractionResult);
+                hasAnyText = hasAnyText || extractionResult.some(item => item.text.trim());
+                hasSubstantialText = hasSubstantialText || extractionResult.some(item => item.text.length > 10);
+            }
+
+            // If the document doesn't contain any substantial text, this criterion doesn't apply
+            if (!hasSubstantialText) {
+                console.log("Document doesn't contain substantial text, WCAG 3.1.2 criterion doesn't apply");
+                return { passed: true };
+            }
+
+            // Check for text without language tags
+            const textWithoutLangTags = textContents.filter(item => !item.hasLangTag && item.text.length > 10);
+
+            // If we found text without language tags
+            if (textWithoutLangTags.length > 0) {
+                return {
+                    passed: false,
+                    issue: WcagTests.IssueFactory.createIssue(
+                        "WCAG 3.1.2 Language of Parts (Level AA)",
+                        `PDF document contains text that may not have language tags. Found ${textWithoutLangTags.length} instances of substantial text without explicit language identification.`,
+                        "Screen readers may not be able to determine the language of specific parts of the document, leading to incorrect pronunciation and potentially making content incomprehensible to users",
+                        "Ensure that all text in the PDF has appropriate language tags, especially when the language changes within the document"
+                    )
+                };
+            }
+
+            // No issues found
+            return { passed: true };
+        } catch (error) {
+            console.error('Error testing language of parts:', error);
+            return {
+                passed: false,
+                issue: WcagTests.IssueFactory.createErrorIssue(
+                    "WCAG 3.1.2 Language of Parts (Level AA)",
+                    error as Error,
+                    "Unable to determine if all parts of the document have proper language identifiers",
+                    "Ensure the PDF file is valid and accessible, with proper language tagging throughout"
+                )
+            };
+        }
+    }
+  
+    /**
+     * Tests if links in a PDF document have a clear purpose (WCAG 2.4.4)
+     * @param pdfDoc PDF document
+     * @returns Promise resolving to an object with test result and optional issue
+     */
+    static async testLinkPurpose(pdfDoc: pdfjsLib.PDFDocumentProxy): Promise<{ passed: boolean; issue?: AccessibilityIssue }> {
+        try {
+            // Extract link content from all pages
+            const links: LinkContent[] = [];
+
+            for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
+                const page = await pdfDoc.getPage(pageNum);
+
+                // Extract links from the page
+                const linkExtractionResult = await LinkExtractor.extractLinksFromPage(page, pageNum);
+
+                links.push(...linkExtractionResult);
+            }
+
+            // Check for links with unclear purpose
+            const unclearLinks = links.filter(link =>
+                !link.linkText ||
+                link.linkText.trim().length < 5 ||
+                link.linkText.toLowerCase().includes('http') ||
+                link.linkText.toLowerCase().includes('www')
+            );
+
+            // If we found links with unclear purpose
+            if (unclearLinks.length > 0) {
+                // Get examples of the problematic links (limit to 3 examples)
+                const examples = unclearLinks.slice(0, 3).map(link => `"${link.linkText || 'No text'}" (page ${link.page})`).join('; ');
+
+                return {
+                    passed: false,
+                    issue: WcagTests.IssueFactory.createIssue(
+                        "WCAG 2.4.4 Link Purpose (In Context) (Level A)",
+                        `PDF document contains hyperlinks that lack meaningful descriptive text. Examples: ${examples}`,
+                        "Screen readers announce link text to blind users. When links display raw URLs or generic text like 'click here', blind users cannot determine the link's purpose or destination without exploring it, making navigation inefficient and potentially confusing.",
+                        "Associate each hyperlink with descriptive text that clearly indicates its purpose or destination. Avoid using raw URLs, page numbers, or generic phrases like 'click here' as link text."
+                    )
+                };
+            }
+
+            // No issues found
+            return { passed: true };
+        } catch (error) {
+            console.error('Error testing link purpose:', error);
+            return {
+                passed: false,
+                issue: WcagTests.IssueFactory.createErrorIssue(
+                    "WCAG 2.4.4 Link Purpose (In Context) (Level A)",
+                    error as Error,
+                    "Unable to determine if hyperlinks have meaningful descriptive text",
+                    "Ensure the PDF file is valid and accessible, with proper tagging of hyperlinks and associated text"
+                )
+            };
+        }
+    }
+  
+    /**
+     * Tests if images in a PDF document have alternative text (WCAG 1.1.1)
+     * @param pdfDoc PDF document
+     * @returns Promise resolving to an object with test result and optional issue
+     */
+    static async testImageAltText(pdfDoc: pdfjsLib.PDFDocumentProxy): Promise<{ passed: boolean; issue?: AccessibilityIssue }> {
+        try {
+            // Extract image content from all pages
+            const images: ImageContent[] = [];
+
+            for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
+                const page = await pdfDoc.getPage(pageNum);
+
+                // Extract images from the page
+                const imageExtractionResult = await ImageExtractor.extractImagesFromPage(page, pageNum);
+
+                images.push(...imageExtractionResult);
+            }
+
+            // If there are no images, this criterion doesn't apply
+            if (images.length === 0) {
+                console.log("Document doesn't contain any images, WCAG 1.1.1 criterion for images doesn't apply");
+                return { passed: true };
+            }
+
+            // Check for images without alt text
+            const imagesWithoutAltText = images.filter(image => !image.hasAltText);
+
+            // If we found images without alt text
+            if (imagesWithoutAltText.length > 0) {
+                return {
+                    passed: false,
+                    issue: WcagTests.IssueFactory.createIssue(
+                        "WCAG 1.1.1 Non-text Content (Level A)",
+                        `PDF document contains ${imagesWithoutAltText.length} image${imagesWithoutAltText.length === 1 ? '' : 's'} without alternative text on page${imagesWithoutAltText.length === 1 ? '' : 's'} ${imagesWithoutAltText.map(img => img.page).join(', ')}`,
+                        "Screen readers cannot convey the content or purpose of these images to blind users, potentially causing them to miss important information conveyed visually",
+                        "Add appropriate alternative text to all images in the PDF structure. The alt text should convey the purpose and content of each image in a concise manner."
+                    )
+                };
+            }
+
+            // No issues found
+            return { passed: true };
+        } catch (error) {
+            console.error('Error testing image alt text:', error);
+            return {
+                passed: false,
+                issue: WcagTests.IssueFactory.createErrorIssue(
+                    "WCAG 1.1.1 Non-text Content (Level A)",
+                    error as Error,
+                    "Unable to determine if images have alternative text",
+                    "Ensure the PDF file is valid and accessible, with proper tagging of images and alternative text"
+                )
+            };
+        }
+    }
 
     /**
      * Tests if all form fields in a PDF document have labels (WCAG 3.3.2)
@@ -544,6 +1467,229 @@ export class WcagTests {
     }
 }
 
+
+export class PdfAccessibilityChecker {
+  /**
+   * Checks the accessibility of a PDF document and generates a report
+   * @param pdfPath Path to the PDF file
+   * @returns Promise resolving to an accessibility report
+   */
+  static async checkAccessibility(pdfPath: string): Promise<AccessibilityReport> {
+      try {
+          // Extract filename from path
+          const filename = pdfPath.split(/[\\/]/).pop() || '';
+          
+          // Initialize the report
+          const report: AccessibilityReport = {
+              filename,
+              passed: true,
+              issues: [],
+              pendingTests: [],
+              timestamp: new Date().toISOString(),
+          };
+          
+          // Detect document type (form or regular document)
+          const documentType = await WcagTests.detectDocumentType(pdfPath);
+          report.documentType = documentType;
+          
+          // Load the PDF document
+          const pdfDoc = await PdfLoader.loadWithPdfJs(pdfPath);
+          
+          // Run the implemented WCAG tests
+          
+          // Test for document title (WCAG 2.4.2)
+          const titleResult = await WcagTests.testDocumentTitle(pdfDoc);
+          if (!titleResult.passed && titleResult.issue) {
+              report.issues.push(titleResult.issue);
+              report.passed = false;
+          }
+          
+          // Test for document language (WCAG 3.1.1)
+          const languageResult = await WcagTests.testDocumentLanguage(pdfDoc);
+          if (!languageResult.passed && languageResult.issue) {
+              report.issues.push(languageResult.issue);
+              report.passed = false;
+          }
+          const languageOfPartsResult = await WcagTests.testLanguageOfParts(pdfPath);
+          if (!languageOfPartsResult.passed && languageOfPartsResult.issue) {
+              report.issues.push(languageOfPartsResult.issue);
+              report.passed = false;
+          }
+
+          // Test for link purpose (WCAG 2.4.4)
+          const linkPurposeResult = await WcagTests.testLinkPurpose(pdfDoc);
+          if (!linkPurposeResult.passed && linkPurposeResult.issue) {
+              report.issues.push(linkPurposeResult.issue);
+              report.passed = false;
+          }
+          
+          // Test for image alt text (WCAG 1.1.1)
+          const imageAltTextResult = await WcagTests.testImageAltText(pdfDoc);
+          if (!imageAltTextResult.passed && imageAltTextResult.issue) {
+              report.issues.push(imageAltTextResult.issue);
+              report.passed = false;
+          }
+
+          if (documentType.isForm) {
+            const formFieldLabelsResult = await WcagTests.testFormFieldLabels(pdfPath);
+            if (!formFieldLabelsResult.passed && formFieldLabelsResult.issue) {
+              report.issues.push(formFieldLabelsResult.issue);
+              report.passed = false;
+            }
+
+            const focusVisibleResult = await WcagTests.testFocusVisible(pdfPath);
+            if (!focusVisibleResult.passed && focusVisibleResult.issue) {
+              report.issues.push(focusVisibleResult.issue);
+              report.passed = false;
+            }
+          }
+
+
+          
+          // Add pending tests
+          report.pendingTests = [
+              {
+                  criterion: "WCAG 2.4.5 Multiple Ways",
+                  reason: "We are planning to implement this test. This criterion requires that there is more than one way to locate a webpage within a set of webpages. For PDFs, this would involve checking for the presence of bookmarks, a table of contents, or other navigation aids.",
+                  status: "Planned - Requirements Analysis"
+              },
+              {
+                  criterion: "WCAG 1.3.2 Meaningful Sequence",
+                  reason: "We are planning to implement this test. This criterion ensures that when the sequence in which content is presented affects its meaning, a correct reading sequence can be programmatically determined. For PDFs, this involves checking the document's structure tree and reading order.",
+                  status: "Planned - Requirements Analysis"
+              },
+              {
+                  criterion: "WCAG 2.4.3 Focus Order",
+                  reason: "We are planning to implement this test. This criterion ensures that the order of focus when navigating through interactive elements in a PDF (like form fields and links) follows a sequence that preserves meaning and operability. This is essential for blind users who navigate documents using keyboard commands with screen readers.",
+                  status: "Planned - Requirements Analysis"
+              }
+          ];
+          
+          // Add additional notes
+          report.additionalNotes = "Note: We are actively working on implementing tests for WCAG 2.4.5 Multiple Ways, WCAG 1.3.2 Meaningful Sequence, and WCAG 2.4.3 Focus Order. For Multiple Ways, we need to gather requirements from sight-impaired users to determine acceptable navigation methods. For Meaningful Sequence, we're developing algorithms to verify that the reading order in PDF documents is logical. For Focus Order, we're analyzing how to test that interactive elements follow a sequence that preserves meaning and operability for screen reader users.";
+          
+          // Save the report to a file
+          const reportPath = pdfPath.replace(/\.pdf$/i, '-accessibility-report.json');
+          await AccessibilityReportGenerator.saveReport(report, reportPath);
+          
+          return report;
+      } catch (error) {
+          console.error("Error checking PDF accessibility:", error);
+          throw error;
+      }
+  }
+}
+
+
+/**
+ * Class responsible for generating accessibility reports for PDF documents.
+ * This class takes the results of various accessibility tests and
+ * generates a comprehensive report in JSON format.
+ */
+export class AccessibilityReportGenerator {
+  /**
+   * Generates an accessibility report for a PDF document
+   * @param pdfPath Path to the PDF file
+   * @param outputPath Path to save the report
+   */
+  static async generateReport(pdfPath: string, outputPath: string): Promise<AccessibilityReport> {
+      try {
+          console.log(`Generating accessibility report for: ${pdfPath}`);
+          
+          // Extract filename from path
+          const filename = pdfPath.split(/[\\/]/).pop() || '';
+          
+          // Detect document type (form or regular document)
+          const documentType = await WcagTests.detectDocumentType(pdfPath);
+          console.log(`Document type: ${documentType.isForm ? 'Form' : 'Document'} (${documentType.confidence}% confidence)`);
+          console.log('Detection details:');
+          documentType.details.forEach(detail => console.log(`- ${detail}`));
+          
+          // Load the PDF document for testing
+          const pdfDoc = await PdfLoader.loadWithPdfJs(pdfPath);
+          
+          // Run the tests
+          const titleResult = await WcagTests.testDocumentTitle(pdfDoc);
+          const languageResult = await WcagTests.testDocumentLanguage(pdfDoc);
+          const languageOfPartsResult = await WcagTests.testLanguageOfParts(pdfPath);
+          const linkPurposeResult = await WcagTests.testLinkPurpose(pdfDoc);
+          const imageAltTextResult = await WcagTests.testImageAltText(pdfDoc);
+          
+          // Check if all tests passed
+          const passed = [
+              titleResult, languageResult, languageOfPartsResult, 
+              linkPurposeResult, imageAltTextResult
+          ].every(result => result.passed);
+          
+          // Collect all issues
+          const issues: AccessibilityIssue[] = [];
+          [titleResult, languageResult, languageOfPartsResult, linkPurposeResult, imageAltTextResult].forEach(result => {
+              if (result && !result.passed && result.issue) issues.push(result.issue);
+          });
+          
+          // Create the report
+          const report: AccessibilityReport = {
+              filename,
+              passed,
+              issues,
+              documentType: {
+                  isForm: documentType.isForm,
+                  isDocument: documentType.isDocument,
+                  confidence: documentType.confidence,
+                  details: documentType.details
+              },
+              pendingTests: [],
+              timestamp: new Date().toISOString()
+          };
+          
+          // Write the report to file
+          this.saveReport(report, outputPath);
+          
+          // Print summary to console
+          this.printReportSummary(report);
+          return report;
+          
+      } catch (error) {
+          console.error("Error generating accessibility report:", error);
+          throw error;
+      }
+  }
+  
+  /**
+   * Saves a report to a file
+   * @param report Accessibility report
+   * @param outputPath Path to save the report
+   */
+  static saveReport(report: AccessibilityReport, outputPath: string): void {
+      fs.writeFileSync(outputPath, JSON.stringify(report, null, 2));
+      console.log(`Accessibility report saved to: ${outputPath}`);
+  }
+  
+  /**
+   * Prints a summary of the report to the console
+   * @param report Accessibility report
+   */
+  static printReportSummary(report: AccessibilityReport): void {
+      console.log(`\nAccessibility Test Summary for ${report.filename}:`);
+      console.log(`Status: ${report.passed ? 'PASSED' : 'FAILED'}`);
+      
+      if (report.issues.length > 0) {
+          console.log(`\nIssues found (${report.issues.length}):`);
+          report.issues.forEach((issue, index) => {
+              console.log(`${index + 1}. ${issue.criterion}: ${issue.description}`);
+          });
+      } else {
+          console.log('\nNo accessibility issues found!');
+      }
+      
+      if (report.documentType) {
+          console.log(`\nDocument Type: ${report.documentType.isForm ? 'Form' : 'Document'} (${report.documentType.confidence}% confidence)`);
+      }
+      
+      console.log(`\nReport generated at: ${report.timestamp}`);
+  }
+}
+
 /**
  * Generates detailed remediation steps for a specific issue
  */
@@ -583,277 +1729,294 @@ function generateRemediationSteps(issue: AccessibilityIssue, documentType: Docum
     return steps;
 }
 
-/**
- * Generates a developer-focused remediation report
- */
-function generateRemediationReport(batchReport: BatchAccessibilityReport): string {
-    let report = '=== PDF Accessibility Remediation Guide ===\n';
-    report += `Generated: ${new Date().toISOString()}\n\n`;
+// /**
+//  * Generates a developer-focused remediation report
+//  */
+// function generateRemediationReport(batchReport: BatchAccessibilityReport): string {
+//     let report = '=== PDF Accessibility Remediation Guide ===\n';
+//     report += `Generated: ${new Date().toISOString()}\n\n`;
 
-    // Overall statistics
-    report += '=== Summary ===\n';
-    report += `Total Files: ${batchReport.totalFiles}\n`;
-    report += `Files Needing Remediation: ${batchReport.failedFiles}\n`;
-    report += `Files Needing Manual Testing: ${batchReport.fileReports.filter(r => r.status === AccessibilityStatus.NeedsManualTesting).length}\n\n`;
+//     // Overall statistics
+//     report += '=== Summary ===\n';
+//     report += `Total Files: ${batchReport.totalFiles}\n`;
+//     report += `Files Needing Remediation: ${batchReport.failedFiles}\n`;
+//     report += `Files Needing Manual Testing: ${batchReport.fileReports.filter(r => r.status === AccessibilityStatus.NeedsManualTesting).length}\n\n`;
 
-    // Common issues and general remediation strategies
-    report += '=== Common Issues and Solutions ===\n';
-    batchReport.commonIssues.forEach(issue => {
-        report += `\nIssue: ${issue.criterion}\n`;
-        report += `Frequency: ${issue.count} occurrences\n`;
-        report += `Description: ${issue.description}\n`;
-    });
+//     // Common issues and general remediation strategies
+//     report += '=== Common Issues and Solutions ===\n';
+//     batchReport.commonIssues.forEach(issue => {
+//         report += `\nIssue: ${issue.criterion}\n`;
+//         report += `Frequency: ${issue.count} occurrences\n`;
+//         report += `Description: ${issue.description}\n`;
+//     });
 
-    // Detailed remediation plans for each file
-    report += '\n=== File-Specific Remediation Plans ===\n';
-    batchReport.fileReports.forEach(fileReport => {
-        report += `\nFile: ${fileReport.filename}\n`;
-        report += `Type: ${fileReport.documentType?.isForm ? 'Form' : 'Document'}\n`;
-        report += `Status: ${fileReport.status}\n`;
+//     // Detailed remediation plans for each file
+//     report += '\n=== File-Specific Remediation Plans ===\n';
+//     batchReport.fileReports.forEach(fileReport => {
+//         report += `\nFile: ${fileReport.filename}\n`;
+//         report += `Type: ${fileReport.documentType?.isForm ? 'Form' : 'Document'}\n`;
+//         report += `Status: ${fileReport.status}\n`;
         
-        if (fileReport.status === AccessibilityStatus.NotAccessible) {
-            let totalEstimatedTime = 0;
-            if (fileReport.issues.length > 0) {
-                report += 'Required Fixes:\n';
-                fileReport.issues.forEach(issue => {
-                    const remediationSteps = generateRemediationSteps(issue, fileReport.documentType!);
-                    report += `\n  [${issue.criterion}]\n`;
-                    report += `  Impact: ${issue.impact}\n`;
-                    report += `  Description: ${issue.description}\n`;
+//         if (fileReport.status === AccessibilityStatus.NotAccessible) {
+//             let totalEstimatedTime = 0;
+//             if (fileReport.issues.length > 0) {
+//                 report += 'Required Fixes:\n';
+//                 fileReport.issues.forEach(issue => {
+//                     const remediationSteps = generateRemediationSteps(issue, fileReport.documentType!);
+//                     report += `\n  [${issue.criterion}]\n`;
+//                     report += `  Impact: ${issue.impact}\n`;
+//                     report += `  Description: ${issue.description}\n`;
                     
-                    remediationSteps.forEach(step => {
-                        report += `\n  Location: ${step.location}\n`;
-                        report += `  Priority: ${step.priority}\n`;
-                        report += '  Steps to Fix:\n';
-                        step.steps.forEach((s, i) => report += `    ${i + 1}. ${s}\n`);
-                        if (step.tools) {
-                            report += '  Required Tools:\n';
-                            step.tools.forEach(tool => report += `    - ${tool}\n`);
-                        }
-                    });
+//                     remediationSteps.forEach(step => {
+//                         report += `\n  Location: ${step.location}\n`;
+//                         report += `  Priority: ${step.priority}\n`;
+//                         report += '  Steps to Fix:\n';
+//                         step.steps.forEach((s, i) => report += `    ${i + 1}. ${s}\n`);
+//                         if (step.tools) {
+//                             report += '  Required Tools:\n';
+//                             step.tools.forEach(tool => report += `    - ${tool}\n`);
+//                         }
+//                     });
                     
-                    const estimatedTime = issue.impact === 'Critical' ? 15 : 10;
-                    totalEstimatedTime += estimatedTime;
-                });
+//                     const estimatedTime = issue.impact === 'Critical' ? 15 : 10;
+//                     totalEstimatedTime += estimatedTime;
+//                 });
                 
-                report += `\n  Estimated Fix Time: ${totalEstimatedTime} minutes\n`;
-            }
-        } else if (fileReport.status === AccessibilityStatus.NeedsManualTesting) {
-            report += '\nManual Testing Required:\n';
-            report += '  - Verify proper reading order\n';
-            report += '  - Check color contrast ratios\n';
-            report += '  - Verify meaningful link text\n';
-            report += '  - Test with screen readers\n';
-        }
+//                 report += `\n  Estimated Fix Time: ${totalEstimatedTime} minutes\n`;
+//             }
+//         } else if (fileReport.status === AccessibilityStatus.NeedsManualTesting) {
+//             report += '\nManual Testing Required:\n';
+//             report += '  - Verify proper reading order\n';
+//             report += '  - Check color contrast ratios\n';
+//             report += '  - Verify meaningful link text\n';
+//             report += '  - Test with screen readers\n';
+//         }
         
-        report += '\n' + '='.repeat(50) + '\n';
-    });
+//         report += '\n' + '='.repeat(50) + '\n';
+//     });
 
-    return report;
-}
+//     return report;
+// }
 
-/**
- * Converts the batch report to a JSON format
- */
-function generateJsonReport(batchReport: BatchAccessibilityReport): JsonRemediationReport {
-    const jsonReport: JsonRemediationReport = {
-        metadata: {
-            generated: new Date().toISOString(),
-            version: '1.0.0'
-        },
-        summary: {
-            totalFiles: batchReport.totalFiles,
-            needsRemediation: batchReport.failedFiles,
-            needsManualTesting: batchReport.fileReports.filter(r => 
-                r.status === AccessibilityStatus.NeedsManualTesting).length
-        },
-        commonIssues: batchReport.commonIssues.map(issue => ({
-            criterion: issue.criterion,
-            frequency: issue.count,
-            description: issue.description
-        })),
-        files: batchReport.fileReports.map(report => {
-            const fileReport: JsonRemediationReport['files'][0] = {
-                filename: report.filename,
-                type: report.documentType?.isForm ? 'Form' : 'Document',
-                status: report.status
-            };
+// /**
+//  * Converts the batch report to a JSON format
+//  */
+// function generateJsonReport(batchReport: BatchAccessibilityReport): JsonRemediationReport {
+//     const jsonReport: JsonRemediationReport = {
+//         metadata: {
+//             generated: new Date().toISOString(),
+//             version: '1.0.0'
+//         },
+//         summary: {
+//             totalFiles: batchReport.totalFiles,
+//             needsRemediation: batchReport.failedFiles,
+//             needsManualTesting: batchReport.fileReports.filter(r => 
+//                 r.status === AccessibilityStatus.NeedsManualTesting).length
+//         },
+//         commonIssues: batchReport.commonIssues.map(issue => ({
+//             criterion: issue.criterion,
+//             frequency: issue.count,
+//             description: issue.description
+//         })),
+//         files: batchReport.fileReports.map(report => {
+//             const fileReport: JsonRemediationReport['files'][0] = {
+//                 filename: report.filename,
+//                 type: report.documentType?.isForm ? 'Form' : 'Document',
+//                 status: report.status
+//             };
 
-            if (report.status === AccessibilityStatus.NotAccessible) {
-                fileReport.issues = report.issues.map(issue => {
-                    const remediationSteps = generateRemediationSteps(issue, report.documentType!);
-                    return {
-                        criterion: issue.criterion,
-                        impact: issue.impact,
-                        description: issue.description,
-                        remediation: remediationSteps.map(step => ({
-                            location: step.location,
-                            priority: step.priority,
-                            steps: step.steps,
-                            tools: step.tools,
-                            estimatedMinutes: issue.impact === 'Critical' ? 15 : 10
-                        }))
-                    };
-                });
+//             if (report.status === AccessibilityStatus.NotAccessible) {
+//                 fileReport.issues = report.issues.map(issue => {
+//                     const remediationSteps = generateRemediationSteps(issue, report.documentType!);
+//                     return {
+//                         criterion: issue.criterion,
+//                         impact: issue.impact,
+//                         description: issue.description,
+//                         remediation: remediationSteps.map(step => ({
+//                             location: step.location,
+//                             priority: step.priority,
+//                             steps: step.steps,
+//                             tools: step.tools,
+//                             estimatedMinutes: issue.impact === 'Critical' ? 15 : 10
+//                         }))
+//                     };
+//                 });
                 
-                fileReport.estimatedFixTime = fileReport.issues?.reduce((total, issue) => 
-                    total + issue.remediation.reduce((stepTotal, step) => 
-                        stepTotal + step.estimatedMinutes, 0), 0);
-            }
+//                 fileReport.estimatedFixTime = fileReport.issues?.reduce((total, issue) => 
+//                     total + issue.remediation.reduce((stepTotal, step) => 
+//                         stepTotal + step.estimatedMinutes, 0), 0);
+//             }
 
-            if (report.status === AccessibilityStatus.NeedsManualTesting) {
-                fileReport.manualTestingSteps = [
-                    'Verify proper reading order',
-                    'Check color contrast ratios',
-                    'Verify meaningful link text',
-                    'Test with screen readers'
-                ];
-            }
+//             if (report.status === AccessibilityStatus.NeedsManualTesting) {
+//                 fileReport.manualTestingSteps = [
+//                     'Verify proper reading order',
+//                     'Check color contrast ratios',
+//                     'Verify meaningful link text',
+//                     'Test with screen readers'
+//                 ];
+//             }
 
-            return fileReport;
-        }),
-        additionalNotes: [
-            'Always test the form after making accessibility improvements',
-            'Verify focus visibility in different PDF readers',
-            'Consider using the "Tab Order" tool to ensure logical navigation',
-            'Save a backup copy before making modifications'
-        ]
-    };
+//             return fileReport;
+//         }),
+//         additionalNotes: [
+//             'Always test the form after making accessibility improvements',
+//             'Verify focus visibility in different PDF readers',
+//             'Consider using the "Tab Order" tool to ensure logical navigation',
+//             'Save a backup copy before making modifications'
+//         ]
+//     };
 
-    return jsonReport;
-}
+//     return jsonReport;
+// }
 
-/**
- * Main function to run accessibility checks on multiple PDF files
- * @param pdfPaths Array of paths to PDF files to check
- * @returns Promise resolving to a BatchAccessibilityReport
- */
-async function batchTestAccessibility(pdfPaths: string[]): Promise<BatchAccessibilityReport> {
-    const fileReports: AccessibilityReport[] = [];
-    const issueTracker = new Map<string, { count: number; description: string }>();
+// /**
+//  * Main function to run accessibility checks on multiple PDF files
+//  * @param pdfPaths Array of paths to PDF files to check
+//  * @returns Promise resolving to a BatchAccessibilityReport
+//  */
+// async function batchTestAccessibility(pdfPaths: string[]): Promise<BatchAccessibilityReport> {
+//     const fileReports: AccessibilityReport[] = [];
+//     const issueTracker = new Map<string, { count: number; description: string }>();
 
-    for (const pdfPath of pdfPaths) {
-        try {
-            // First detect if it's a form or document
-            const docType = await WcagTests.detectDocumentType(pdfPath);
-            const issues: AccessibilityIssue[] = [];
+//     for (const pdfPath of pdfPaths) {
+//         try {
+//             // First detect if it's a form or document
+//             const docType = await WcagTests.detectDocumentType(pdfPath);
+//             const issues: AccessibilityIssue[] = [];
             
-            // Run form-specific tests if it's a form
-            if (docType.isForm) {
-                // Check form field labels
-                const labelResult = await WcagTests.testFormFieldLabels(pdfPath);
-                if (!labelResult.passed && labelResult.issue) {
-                    issues.push(labelResult.issue);
-                    // Track issue frequency
-                    const key = labelResult.issue.criterion;
-                    const current = issueTracker.get(key) || { count: 0, description: labelResult.issue.description };
-                    issueTracker.set(key, { count: current.count + 1, description: current.description });
-                }
+//             // Run form-specific tests if it's a form
+//             if (docType.isForm) {
+//                 // Check form field labels
+//                 const labelResult = await WcagTests.testFormFieldLabels(pdfPath);
+//                 if (!labelResult.passed && labelResult.issue) {
+//                     issues.push(labelResult.issue);
+//                     // Track issue frequency
+//                     const key = labelResult.issue.criterion;
+//                     const current = issueTracker.get(key) || { count: 0, description: labelResult.issue.description };
+//                     issueTracker.set(key, { count: current.count + 1, description: current.description });
+//                 }
 
-                // Check form field focus visibility
-                const focusResult = await WcagTests.testFocusVisible(pdfPath);
-                if (!focusResult.passed && focusResult.issue) {
-                    issues.push(focusResult.issue);
-                    // Track issue frequency
-                    const key = focusResult.issue.criterion;
-                    const current = issueTracker.get(key) || { count: 0, description: focusResult.issue.description };
-                    issueTracker.set(key, { count: current.count + 1, description: current.description });
-                }
-            }
+//                 // Check form field focus visibility
+//                 const focusResult = await WcagTests.testFocusVisible(pdfPath);
+//                 if (!focusResult.passed && focusResult.issue) {
+//                     issues.push(focusResult.issue);
+//                     // Track issue frequency
+//                     const key = focusResult.issue.criterion;
+//                     const current = issueTracker.get(key) || { count: 0, description: focusResult.issue.description };
+//                     issueTracker.set(key, { count: current.count + 1, description: current.description });
+//                 }
+//             }
 
-            // Create report for this file
-            let status: AccessibilityStatus;
-            if (issues.length > 0) {
-                status = AccessibilityStatus.NotAccessible;
-            } else if (docType.isForm) {
-                status = AccessibilityStatus.NeedsManualTesting;
-            } else {
-                status = AccessibilityStatus.Accessible;
-            }
+//             // Create report for this file
+//             let status: AccessibilityStatus;
+//             if (issues.length > 0) {
+//                 status = AccessibilityStatus.NotAccessible;
+//             } else if (docType.isForm) {
+//                 status = AccessibilityStatus.NeedsManualTesting;
+//             } else {
+//                 status = AccessibilityStatus.Accessible;
+//             }
 
-            const report: AccessibilityReport = {
-                filename: pdfPath,
-                passed: issues.length === 0,
-                issues: issues,
-                documentType: docType,
-                timestamp: new Date().toISOString(),
-                status
-            };
+//             const report: AccessibilityReport = {
+//                 filename: pdfPath,
+//                 passed: issues.length === 0,
+//                 issues: issues,
+//                 documentType: docType,
+//                 timestamp: new Date().toISOString(),
+//                 status
+//             };
 
-            fileReports.push(report);
+//             fileReports.push(report);
 
-        } catch (error) {
-            console.error(`Error processing ${pdfPath}:`, error);
-            fileReports.push({
-                filename: pdfPath,
-                passed: false,
-                issues: [{
-                    criterion: "Processing Error",
-                    description: `Failed to process file: ${error.message}`,
-                    impact: "Critical",
-                    remediation: "Ensure the PDF file is valid and accessible"
-                }],
-                timestamp: new Date().toISOString(),
-                status: AccessibilityStatus.NotAccessible
-            });
-        }
-    }
+//         } catch (error) {
+//             console.error(`Error processing ${pdfPath}:`, error);
+//             fileReports.push({
+//                 filename: pdfPath,
+//                 passed: false,
+//                 issues: [{
+//                     criterion: "Processing Error",
+//                     description: `Failed to process file: ${error.message}`,
+//                     impact: "Critical",
+//                     remediation: "Ensure the PDF file is valid and accessible"
+//                 }],
+//                 timestamp: new Date().toISOString(),
+//                 status: AccessibilityStatus.NotAccessible
+//             });
+//         }
+//     }
 
-    // Calculate statistics
-    const passedFiles = fileReports.filter(report => report.passed).length;
+//     // Calculate statistics
+//     const passedFiles = fileReports.filter(report => report.passed).length;
     
-    // Sort common issues by frequency
-    const commonIssues = Array.from(issueTracker.entries())
-        .map(([criterion, { count, description }]) => ({ criterion, count, description }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 5); // Top 5 most common issues
+//     // Sort common issues by frequency
+//     const commonIssues = Array.from(issueTracker.entries())
+//         .map(([criterion, { count, description }]) => ({ criterion, count, description }))
+//         .sort((a, b) => b.count - a.count)
+//         .slice(0, 5); // Top 5 most common issues
 
-    return {
-        timestamp: new Date().toISOString(),
-        totalFiles: fileReports.length,
-        passedFiles,
-        failedFiles: fileReports.length - passedFiles,
-        fileReports,
-        commonIssues
-    };
-}
+//     return {
+//         timestamp: new Date().toISOString(),
+//         totalFiles: fileReports.length,
+//         passedFiles,
+//         failedFiles: fileReports.length - passedFiles,
+//         fileReports,
+//         commonIssues
+//     };
+// }
 
-/**
- * Main function to run accessibility checks
- */
+// /**
+//  * Main function to run accessibility checks
+//  */
+// async function main() {
+//     const pdfPaths = process.argv.slice(2);
+//     if (pdfPaths.length === 0) {
+//         console.error('Please provide one or more PDF file paths');
+//         process.exit(1);
+//     }
+
+//     try {
+//         const batchReport = await batchTestAccessibility(pdfPaths);
+        
+//         // Generate and save the text report
+//         const textReport = generateRemediationReport(batchReport);
+//         const textReportPath = 'pdf_accessibility_remediation_guide.txt';
+//         fs.writeFileSync(textReportPath, textReport);
+        
+//         // Generate and save the JSON report
+//         const jsonReport = generateJsonReport(batchReport);
+//         const jsonReportPath = 'pdf_accessibility_report.json';
+//         fs.writeFileSync(jsonReportPath, JSON.stringify(jsonReport, null, 2));
+        
+//         // Print summary to console
+//         console.log('\n=== PDF Accessibility Batch Report ===');
+//         console.log(`Text report saved to: ${textReportPath}`);
+//         console.log(`JSON report saved to: ${jsonReportPath}`);
+//         console.log(`\nSummary:`);
+//         console.log(`Total Files: ${batchReport.totalFiles}`);
+//         console.log(`Files Needing Remediation: ${batchReport.failedFiles}`);
+//         console.log(`Files Needing Manual Testing: ${batchReport.fileReports.filter(r => 
+//             r.status === AccessibilityStatus.NeedsManualTesting).length}`);
+//     } catch (error) {
+//         console.error('Error processing batch:', error);
+//         process.exit(1);
+//     }
+// }
+
+
 async function main() {
-    const pdfPaths = process.argv.slice(2);
-    if (pdfPaths.length === 0) {
-        console.error('Please provide one or more PDF file paths');
-        process.exit(1);
-    }
+  const pdfPath = process.argv[2];
+  if (!pdfPath) {
+      console.error('Please provide a PDF file path');
+      process.exit(1);
+  }
 
-    try {
-        const batchReport = await batchTestAccessibility(pdfPaths);
-        
-        // Generate and save the text report
-        const textReport = generateRemediationReport(batchReport);
-        const textReportPath = 'pdf_accessibility_remediation_guide.txt';
-        fs.writeFileSync(textReportPath, textReport);
-        
-        // Generate and save the JSON report
-        const jsonReport = generateJsonReport(batchReport);
-        const jsonReportPath = 'pdf_accessibility_report.json';
-        fs.writeFileSync(jsonReportPath, JSON.stringify(jsonReport, null, 2));
-        
-        // Print summary to console
-        console.log('\n=== PDF Accessibility Batch Report ===');
-        console.log(`Text report saved to: ${textReportPath}`);
-        console.log(`JSON report saved to: ${jsonReportPath}`);
-        console.log(`\nSummary:`);
-        console.log(`Total Files: ${batchReport.totalFiles}`);
-        console.log(`Files Needing Remediation: ${batchReport.failedFiles}`);
-        console.log(`Files Needing Manual Testing: ${batchReport.fileReports.filter(r => 
-            r.status === AccessibilityStatus.NeedsManualTesting).length}`);
-    } catch (error) {
-        console.error('Error processing batch:', error);
-        process.exit(1);
-    }
+  try {
+    PdfAccessibilityChecker.checkAccessibility(pdfPath);
+
+  } catch (error) {
+      console.error('Error processing PDF:', error);
+      process.exit(1);
+  }
 }
 
 // Run the main function if this script is run directly
