@@ -60,7 +60,7 @@ export interface AccessibilityIssue {
     impact: string;
 
     /** Suggested steps to fix the accessibility issue */
-    remediation: string;
+    remediation: RemediationStep;
 }
 
 export interface TextContent {
@@ -883,7 +883,7 @@ export class WcagTests {
             criterion: string,
             description: string,
             impact: string,
-            remediation: string
+            remediation: RemediationStep
         ): AccessibilityIssue {
             return {
                 criterion,
@@ -897,7 +897,7 @@ export class WcagTests {
             criterion: string,
             error: Error,
             description: string,
-            remediation: string
+            remediation: RemediationStep
         ): AccessibilityIssue {
             return {
                 criterion,
@@ -926,7 +926,8 @@ export class WcagTests {
                         "WCAG 2.4.2 Page Titled (Level A)",
                         "PDF document does not have a title in its metadata",
                         "Screen readers cannot announce the document title, making it difficult for users to understand the document's purpose or distinguish between multiple open documents",
-                        "Add a descriptive title to the PDF document's metadata properties"
+                        AccessibilityReportGenerator.generateRemediationSteps("WCAG 2.4.2 Page Titled (Level A)")
+                        // "Add a descriptive title to the PDF document's metadata properties"
                     )
                 };
             }
@@ -941,7 +942,8 @@ export class WcagTests {
                     "WCAG 2.4.2 Page Titled (Level A)",
                     error as Error,
                     "Unable to determine if the document has a proper title",
-                    "Ensure the PDF file is valid and accessible"
+                    AccessibilityReportGenerator.generateRemediationSteps("WCAG 2.4.2 Page Titled (Level A)")
+                    //"Ensure the PDF file is valid and accessible"
                 )
             };
         }
@@ -965,7 +967,8 @@ export class WcagTests {
                         "WCAG 3.1.1 Language of Page (Level A)",
                         "PDF document may not have a language identifier in its metadata",
                         "Screen readers may not be able to determine the document language, leading to incorrect pronunciation and potentially making content incomprehensible to users",
-                        "Set the document language in the PDF properties"
+                        AccessibilityReportGenerator.generateRemediationSteps("WCAG 3.1.1 Language of Page (Level A)")
+                        //"Set the document language in the PDF properties"
                     )
                 };
             }
@@ -980,7 +983,8 @@ export class WcagTests {
                     "WCAG 3.1.1 Language of Page (Level A)",
                     error as Error,
                     "Unable to determine if the document has a proper language identifier",
-                    "Ensure the PDF file is valid and accessible"
+                    AccessibilityReportGenerator.generateRemediationSteps("WCAG 3.1.1 Language of Page (Level A)")
+                    // "Ensure the PDF file is valid and accessible"
                 )
             };
         }
@@ -1030,7 +1034,8 @@ export class WcagTests {
                         "WCAG 3.1.2 Language of Parts (Level AA)",
                         `PDF document contains text that may not have language tags. Found ${textWithoutLangTags.length} instances of substantial text without explicit language identification.`,
                         "Screen readers may not be able to determine the language of specific parts of the document, leading to incorrect pronunciation and potentially making content incomprehensible to users",
-                        "Ensure that all text in the PDF has appropriate language tags, especially when the language changes within the document"
+                        AccessibilityReportGenerator.generateRemediationSteps("WCAG 3.1.2 Language of Parts (Level AA)")
+                        // "Ensure that all text in the PDF has appropriate language tags, especially when the language changes within the document"
                     )
                 };
             }
@@ -1045,7 +1050,8 @@ export class WcagTests {
                     "WCAG 3.1.2 Language of Parts (Level AA)",
                     error as Error,
                     "Unable to determine if all parts of the document have proper language identifiers",
-                    "Ensure the PDF file is valid and accessible, with proper language tagging throughout"
+                    AccessibilityReportGenerator.generateRemediationSteps("WCAG 3.1.2 Language of Parts (Level AA)")
+                    //"Ensure the PDF file is valid and accessible, with proper language tagging throughout"
                 )
             };
         }
@@ -1089,7 +1095,8 @@ export class WcagTests {
                         "WCAG 2.4.4 Link Purpose (In Context) (Level A)",
                         `PDF document contains hyperlinks that lack meaningful descriptive text. Examples: ${examples}`,
                         "Screen readers announce link text to blind users. When links display raw URLs or generic text like 'click here', blind users cannot determine the link's purpose or destination without exploring it, making navigation inefficient and potentially confusing.",
-                        "Associate each hyperlink with descriptive text that clearly indicates its purpose or destination. Avoid using raw URLs, page numbers, or generic phrases like 'click here' as link text."
+                        AccessibilityReportGenerator.generateRemediationSteps("WCAG 2.4.4 Link Purpose (In Context) (Level A)")
+                        //"Associate each hyperlink with descriptive text that clearly indicates its purpose or destination. Avoid using raw URLs, page numbers, or generic phrases like 'click here' as link text."
                     )
                 };
             }
@@ -1104,7 +1111,8 @@ export class WcagTests {
                     "WCAG 2.4.4 Link Purpose (In Context) (Level A)",
                     error as Error,
                     "Unable to determine if hyperlinks have meaningful descriptive text",
-                    "Ensure the PDF file is valid and accessible, with proper tagging of hyperlinks and associated text"
+                    AccessibilityReportGenerator.generateRemediationSteps("WCAG 2.4.4 Link Purpose (In Context) (Level A)")
+                    // "Ensure the PDF file is valid and accessible, with proper tagging of hyperlinks and associated text"
                 )
             };
         }
@@ -1146,7 +1154,8 @@ export class WcagTests {
                         "WCAG 1.1.1 Non-text Content (Level A)",
                         `PDF document contains ${imagesWithoutAltText.length} image${imagesWithoutAltText.length === 1 ? '' : 's'} without alternative text on page${imagesWithoutAltText.length === 1 ? '' : 's'} ${imagesWithoutAltText.map(img => img.page).join(', ')}`,
                         "Screen readers cannot convey the content or purpose of these images to blind users, potentially causing them to miss important information conveyed visually",
-                        "Add appropriate alternative text to all images in the PDF structure. The alt text should convey the purpose and content of each image in a concise manner."
+                        AccessibilityReportGenerator.generateRemediationSteps("WCAG 1.1.1 Non-text Content (Level A)")
+                        //"Add appropriate alternative text to all images in the PDF structure. The alt text should convey the purpose and content of each image in a concise manner."
                     )
                 };
             }
@@ -1161,7 +1170,8 @@ export class WcagTests {
                     "WCAG 1.1.1 Non-text Content (Level A)",
                     error as Error,
                     "Unable to determine if images have alternative text",
-                    "Ensure the PDF file is valid and accessible, with proper tagging of images and alternative text"
+                    AccessibilityReportGenerator.generateRemediationSteps("WCAG 1.1.1 Non-text Content (Level A)")
+                    // "Ensure the PDF file is valid and accessible, with proper tagging of images and alternative text"
                 )
             };
         }
@@ -1223,7 +1233,7 @@ export class WcagTests {
                         criterion: "WCAG 3.3.2 Labels or Instructions (Level A)",
                         description: `Found ${fieldsWithoutLabels.length} form fields without labels out of ${formFields.length} total fields.`,
                         impact: "Critical - Users may not understand the purpose or required input for form fields",
-                        remediation: "Add descriptive labels to all form fields to ensure users understand their purpose"
+                        remediation: AccessibilityReportGenerator.generateRemediationSteps("WCAG 3.3.2 Labels or Instructions (Level A)")//"Add descriptive labels to all form fields to ensure users understand their purpose"
                     }
                 };
             }
@@ -1238,7 +1248,7 @@ export class WcagTests {
                     criterion: "WCAG 3.3.2 Labels or Instructions (Level A)",
                     description: "Unable to check form field labels due to an error",
                     impact: "Critical",
-                    remediation: "Ensure the PDF file is valid and accessible"
+                    remediation: AccessibilityReportGenerator.generateRemediationSteps("WCAG 3.3.2 Labels or Instructions (Level A)")//"Ensure the PDF file is valid and accessible"
                 }
             };
         }
@@ -1371,9 +1381,10 @@ export class WcagTests {
                         "WCAG 2.4.7 Focus Visible (Level AA)",
                         `Found ${fieldsWithoutFocus.length} form fields that may lack visible focus indicators out of ${formFields.length} total fields.`,
                         "Serious",
-                        "Ensure all interactive form fields have a clear visual focus indicator when receiving keyboard focus. " +
-                        "Add appropriate focus styles to fields that lack them. Consider using highlighting, borders, or other " +
-                        "visual indicators that meet contrast requirements."
+                        AccessibilityReportGenerator.generateRemediationSteps("WCAG 2.4.7 Focus Visible (Level AA)")
+                        // "Ensure all interactive form fields have a clear visual focus indicator when receiving keyboard focus. " +
+                        // "Add appropriate focus styles to fields that lack them. Consider using highlighting, borders, or other " +
+                        // "visual indicators that meet contrast requirements."
                     )
                 };
             }
@@ -1388,7 +1399,8 @@ export class WcagTests {
                     "WCAG 2.4.7 Focus Visible (Level AA)",
                     error as Error,
                     "Unable to check focus visibility",
-                    "Ensure the PDF file is valid and accessible, then try the test again"
+                    AccessibilityReportGenerator.generateRemediationSteps("WCAG 2.4.7 Focus Visible (Level AA)")
+                    //"Ensure the PDF file is valid and accessible, then try the test again"
                 )
             };
         }
@@ -1688,6 +1700,83 @@ export class AccessibilityReportGenerator {
       
       console.log(`\nReport generated at: ${report.timestamp}`);
   }
+
+  /**
+   * Generates detailed remediation steps for a specific issue
+   */
+  static generateRemediationSteps(issue: string): RemediationStep {  
+    if (issue.includes('3.3.2')) { // Form Field Labels
+        return {
+            location: 'Form Fields without Labels',
+            steps: [
+                'Open the PDF in Adobe Acrobat Pro DC',
+                'Go to Tools > Accessibility > Reading Order',
+                'Identify unlabeled form fields',
+                'Right-click each field and select "Properties"',
+                'Add appropriate label text in the "Tooltip" field'
+            ],
+            tools: ['Adobe Acrobat Pro DC', 'Form Field Properties Editor'],
+            priority: 'Critical'
+        };
+    }
+    else if (issue.includes('2.4.7')) { // Focus Visibility
+        return {
+            location: 'Form Fields without Focus Indicators',
+            steps: [
+                'Open the PDF in Adobe Acrobat Pro DC',
+                'Go to Tools > Prepare Form',
+                'Select all form fields without focus indicators',
+                'Right-click and select "Properties"',
+                'In the Appearance tab, set border color and thickness',
+                'Enable "Show border hover color for fields"'
+            ],
+            tools: ['Adobe Acrobat Pro DC', 'Form Field Properties Editor'],
+            priority: 'High'
+        };
+    }
+    else if ('1.1.1') {
+      return {
+        location: "temp location",
+        steps: [
+          'temp steps'
+        ],
+        tools: ['temp tools'],
+        priority: 'temp priority'
+      };
+    }
+    else if (issue.includes('2.4.2')) {
+      return {
+        location: "temp location",
+        steps: [
+          'temp steps'
+        ],
+        tools: ['temp tools'],
+        priority: 'temp priority'
+      };
+    }
+    else if ('2.4.4') {
+      return {
+        location: "temp location",
+        steps: [
+          'temp steps'
+        ],
+        tools: ['temp tools'],
+        priority: 'temp priority'
+      };
+    }
+    else if ('3.1.2') {
+      return {
+        location: "temp location",
+        steps: [
+          'temp steps'
+        ],
+        tools: ['temp tools'],
+        priority: 'temp priority'
+      };
+    }
+    
+    return null;
+  }
 }
 
 /**
@@ -1728,279 +1817,6 @@ function generateRemediationSteps(issue: AccessibilityIssue, documentType: Docum
     
     return steps;
 }
-
-// /**
-//  * Generates a developer-focused remediation report
-//  */
-// function generateRemediationReport(batchReport: BatchAccessibilityReport): string {
-//     let report = '=== PDF Accessibility Remediation Guide ===\n';
-//     report += `Generated: ${new Date().toISOString()}\n\n`;
-
-//     // Overall statistics
-//     report += '=== Summary ===\n';
-//     report += `Total Files: ${batchReport.totalFiles}\n`;
-//     report += `Files Needing Remediation: ${batchReport.failedFiles}\n`;
-//     report += `Files Needing Manual Testing: ${batchReport.fileReports.filter(r => r.status === AccessibilityStatus.NeedsManualTesting).length}\n\n`;
-
-//     // Common issues and general remediation strategies
-//     report += '=== Common Issues and Solutions ===\n';
-//     batchReport.commonIssues.forEach(issue => {
-//         report += `\nIssue: ${issue.criterion}\n`;
-//         report += `Frequency: ${issue.count} occurrences\n`;
-//         report += `Description: ${issue.description}\n`;
-//     });
-
-//     // Detailed remediation plans for each file
-//     report += '\n=== File-Specific Remediation Plans ===\n';
-//     batchReport.fileReports.forEach(fileReport => {
-//         report += `\nFile: ${fileReport.filename}\n`;
-//         report += `Type: ${fileReport.documentType?.isForm ? 'Form' : 'Document'}\n`;
-//         report += `Status: ${fileReport.status}\n`;
-        
-//         if (fileReport.status === AccessibilityStatus.NotAccessible) {
-//             let totalEstimatedTime = 0;
-//             if (fileReport.issues.length > 0) {
-//                 report += 'Required Fixes:\n';
-//                 fileReport.issues.forEach(issue => {
-//                     const remediationSteps = generateRemediationSteps(issue, fileReport.documentType!);
-//                     report += `\n  [${issue.criterion}]\n`;
-//                     report += `  Impact: ${issue.impact}\n`;
-//                     report += `  Description: ${issue.description}\n`;
-                    
-//                     remediationSteps.forEach(step => {
-//                         report += `\n  Location: ${step.location}\n`;
-//                         report += `  Priority: ${step.priority}\n`;
-//                         report += '  Steps to Fix:\n';
-//                         step.steps.forEach((s, i) => report += `    ${i + 1}. ${s}\n`);
-//                         if (step.tools) {
-//                             report += '  Required Tools:\n';
-//                             step.tools.forEach(tool => report += `    - ${tool}\n`);
-//                         }
-//                     });
-                    
-//                     const estimatedTime = issue.impact === 'Critical' ? 15 : 10;
-//                     totalEstimatedTime += estimatedTime;
-//                 });
-                
-//                 report += `\n  Estimated Fix Time: ${totalEstimatedTime} minutes\n`;
-//             }
-//         } else if (fileReport.status === AccessibilityStatus.NeedsManualTesting) {
-//             report += '\nManual Testing Required:\n';
-//             report += '  - Verify proper reading order\n';
-//             report += '  - Check color contrast ratios\n';
-//             report += '  - Verify meaningful link text\n';
-//             report += '  - Test with screen readers\n';
-//         }
-        
-//         report += '\n' + '='.repeat(50) + '\n';
-//     });
-
-//     return report;
-// }
-
-// /**
-//  * Converts the batch report to a JSON format
-//  */
-// function generateJsonReport(batchReport: BatchAccessibilityReport): JsonRemediationReport {
-//     const jsonReport: JsonRemediationReport = {
-//         metadata: {
-//             generated: new Date().toISOString(),
-//             version: '1.0.0'
-//         },
-//         summary: {
-//             totalFiles: batchReport.totalFiles,
-//             needsRemediation: batchReport.failedFiles,
-//             needsManualTesting: batchReport.fileReports.filter(r => 
-//                 r.status === AccessibilityStatus.NeedsManualTesting).length
-//         },
-//         commonIssues: batchReport.commonIssues.map(issue => ({
-//             criterion: issue.criterion,
-//             frequency: issue.count,
-//             description: issue.description
-//         })),
-//         files: batchReport.fileReports.map(report => {
-//             const fileReport: JsonRemediationReport['files'][0] = {
-//                 filename: report.filename,
-//                 type: report.documentType?.isForm ? 'Form' : 'Document',
-//                 status: report.status
-//             };
-
-//             if (report.status === AccessibilityStatus.NotAccessible) {
-//                 fileReport.issues = report.issues.map(issue => {
-//                     const remediationSteps = generateRemediationSteps(issue, report.documentType!);
-//                     return {
-//                         criterion: issue.criterion,
-//                         impact: issue.impact,
-//                         description: issue.description,
-//                         remediation: remediationSteps.map(step => ({
-//                             location: step.location,
-//                             priority: step.priority,
-//                             steps: step.steps,
-//                             tools: step.tools,
-//                             estimatedMinutes: issue.impact === 'Critical' ? 15 : 10
-//                         }))
-//                     };
-//                 });
-                
-//                 fileReport.estimatedFixTime = fileReport.issues?.reduce((total, issue) => 
-//                     total + issue.remediation.reduce((stepTotal, step) => 
-//                         stepTotal + step.estimatedMinutes, 0), 0);
-//             }
-
-//             if (report.status === AccessibilityStatus.NeedsManualTesting) {
-//                 fileReport.manualTestingSteps = [
-//                     'Verify proper reading order',
-//                     'Check color contrast ratios',
-//                     'Verify meaningful link text',
-//                     'Test with screen readers'
-//                 ];
-//             }
-
-//             return fileReport;
-//         }),
-//         additionalNotes: [
-//             'Always test the form after making accessibility improvements',
-//             'Verify focus visibility in different PDF readers',
-//             'Consider using the "Tab Order" tool to ensure logical navigation',
-//             'Save a backup copy before making modifications'
-//         ]
-//     };
-
-//     return jsonReport;
-// }
-
-// /**
-//  * Main function to run accessibility checks on multiple PDF files
-//  * @param pdfPaths Array of paths to PDF files to check
-//  * @returns Promise resolving to a BatchAccessibilityReport
-//  */
-// async function batchTestAccessibility(pdfPaths: string[]): Promise<BatchAccessibilityReport> {
-//     const fileReports: AccessibilityReport[] = [];
-//     const issueTracker = new Map<string, { count: number; description: string }>();
-
-//     for (const pdfPath of pdfPaths) {
-//         try {
-//             // First detect if it's a form or document
-//             const docType = await WcagTests.detectDocumentType(pdfPath);
-//             const issues: AccessibilityIssue[] = [];
-            
-//             // Run form-specific tests if it's a form
-//             if (docType.isForm) {
-//                 // Check form field labels
-//                 const labelResult = await WcagTests.testFormFieldLabels(pdfPath);
-//                 if (!labelResult.passed && labelResult.issue) {
-//                     issues.push(labelResult.issue);
-//                     // Track issue frequency
-//                     const key = labelResult.issue.criterion;
-//                     const current = issueTracker.get(key) || { count: 0, description: labelResult.issue.description };
-//                     issueTracker.set(key, { count: current.count + 1, description: current.description });
-//                 }
-
-//                 // Check form field focus visibility
-//                 const focusResult = await WcagTests.testFocusVisible(pdfPath);
-//                 if (!focusResult.passed && focusResult.issue) {
-//                     issues.push(focusResult.issue);
-//                     // Track issue frequency
-//                     const key = focusResult.issue.criterion;
-//                     const current = issueTracker.get(key) || { count: 0, description: focusResult.issue.description };
-//                     issueTracker.set(key, { count: current.count + 1, description: current.description });
-//                 }
-//             }
-
-//             // Create report for this file
-//             let status: AccessibilityStatus;
-//             if (issues.length > 0) {
-//                 status = AccessibilityStatus.NotAccessible;
-//             } else if (docType.isForm) {
-//                 status = AccessibilityStatus.NeedsManualTesting;
-//             } else {
-//                 status = AccessibilityStatus.Accessible;
-//             }
-
-//             const report: AccessibilityReport = {
-//                 filename: pdfPath,
-//                 passed: issues.length === 0,
-//                 issues: issues,
-//                 documentType: docType,
-//                 timestamp: new Date().toISOString(),
-//                 status
-//             };
-
-//             fileReports.push(report);
-
-//         } catch (error) {
-//             console.error(`Error processing ${pdfPath}:`, error);
-//             fileReports.push({
-//                 filename: pdfPath,
-//                 passed: false,
-//                 issues: [{
-//                     criterion: "Processing Error",
-//                     description: `Failed to process file: ${error.message}`,
-//                     impact: "Critical",
-//                     remediation: "Ensure the PDF file is valid and accessible"
-//                 }],
-//                 timestamp: new Date().toISOString(),
-//                 status: AccessibilityStatus.NotAccessible
-//             });
-//         }
-//     }
-
-//     // Calculate statistics
-//     const passedFiles = fileReports.filter(report => report.passed).length;
-    
-//     // Sort common issues by frequency
-//     const commonIssues = Array.from(issueTracker.entries())
-//         .map(([criterion, { count, description }]) => ({ criterion, count, description }))
-//         .sort((a, b) => b.count - a.count)
-//         .slice(0, 5); // Top 5 most common issues
-
-//     return {
-//         timestamp: new Date().toISOString(),
-//         totalFiles: fileReports.length,
-//         passedFiles,
-//         failedFiles: fileReports.length - passedFiles,
-//         fileReports,
-//         commonIssues
-//     };
-// }
-
-// /**
-//  * Main function to run accessibility checks
-//  */
-// async function main() {
-//     const pdfPaths = process.argv.slice(2);
-//     if (pdfPaths.length === 0) {
-//         console.error('Please provide one or more PDF file paths');
-//         process.exit(1);
-//     }
-
-//     try {
-//         const batchReport = await batchTestAccessibility(pdfPaths);
-        
-//         // Generate and save the text report
-//         const textReport = generateRemediationReport(batchReport);
-//         const textReportPath = 'pdf_accessibility_remediation_guide.txt';
-//         fs.writeFileSync(textReportPath, textReport);
-        
-//         // Generate and save the JSON report
-//         const jsonReport = generateJsonReport(batchReport);
-//         const jsonReportPath = 'pdf_accessibility_report.json';
-//         fs.writeFileSync(jsonReportPath, JSON.stringify(jsonReport, null, 2));
-        
-//         // Print summary to console
-//         console.log('\n=== PDF Accessibility Batch Report ===');
-//         console.log(`Text report saved to: ${textReportPath}`);
-//         console.log(`JSON report saved to: ${jsonReportPath}`);
-//         console.log(`\nSummary:`);
-//         console.log(`Total Files: ${batchReport.totalFiles}`);
-//         console.log(`Files Needing Remediation: ${batchReport.failedFiles}`);
-//         console.log(`Files Needing Manual Testing: ${batchReport.fileReports.filter(r => 
-//             r.status === AccessibilityStatus.NeedsManualTesting).length}`);
-//     } catch (error) {
-//         console.error('Error processing batch:', error);
-//         process.exit(1);
-//     }
-// }
 
 
 async function main() {
