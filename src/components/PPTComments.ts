@@ -243,7 +243,7 @@ export class PPTComments {
 // Example usage:
 async function main() {
     try {
-        const comments = await PPTComments.getComments("/home/tharindu/Downloads/test.pptx");
+        const comments = await PPTComments.getComments("/home/tharindu/Downloads/Versioning.pptx");
         console.log('PowerPoint Comments:');
         console.log(comments);
         comments.forEach((comment, index) => {
@@ -255,7 +255,7 @@ async function main() {
             console.log(`Position: (${comment.position.x}, ${comment.position.y})`);
         });
 
-        await PPTComments.addComment("/home/tharindu/Downloads/test.pptx", 4, {
+        await PPTComments.addComment("/home/tharindu/Downloads/Versioning.pptx", 4, {
           author: 'Thor',
           text: 'adding comment test new code',
           x: 0, // Position in EMUs
