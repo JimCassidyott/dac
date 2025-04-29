@@ -64,6 +64,7 @@ export class PPTComments {
             // Process all comment files
             for (const fileName in zipContent.files) {
                 if (fileName.match(/ppt\/comments\/comment\d*\.xml$/i)) {
+                  console.log(fileName)
                     const commentXml = await zipContent.files[fileName].async('text');
                     const parser = new DOMParser();
                     const xmlDoc = parser.parseFromString(commentXml, 'text/xml');
@@ -232,8 +233,33 @@ export class PPTComments {
           'application/vnd.openxmlformats-officedocument.presentationml.comments+xml'
       );
       zip.file('[Content_Types].xml', serializer.serializeToString(ctDoc));
+
+      // === 7. Update slideX.xml to reference comment
+      const slidePath = `ppt/slides/slide${slideNumber}.xml`;
+      const slideXml = await zip.files[slidePath].async('text');
+      const slideDoc = parser.parseFromString(slideXml, 'text/xml');
+
+      // Check if p:extLst exists (extension list node)
+      let extLst = slideDoc.getElementsByTagName('p:extLst')[0];
+      if (!extLst) {
+          extLst = slideDoc.createElement('p:extLst');
+          slideDoc.documentElement.appendChild(extLst);
+      }
+
+      // Add ext (extension) to reference the comment relationship
+      const ext = slideDoc.createElement('p:ext');
+      ext.setAttribute('uri', '{6ED91436-1675-4D13-B67E-5E8DDF6C6B4F}');
+      ext.innerHTML = `
+          <p15:cmAuthorLst xmlns:p15="http://schemas.microsoft.com/office/powerpoint/2012/main">
+          </p15:cmAuthorLst>
+      `; // Note: XML namespace declaration needed
+
+      extLst.appendChild(ext);
+
+      // Update slide file
+      zip.file(slidePath, serializer.serializeToString(slideDoc));
   
-      // === 7. Save back ===
+      // === 8. Save back ===
       const output = await zip.generateAsync({ type: 'nodebuffer' });
       fs.writeFileSync(filePath, output);
   }
