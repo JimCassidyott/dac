@@ -127,8 +127,7 @@ export async function addPptxComment(filePath: string, slideNumber: number, comm
     console.log(`Comment added on slide ${slideNumber}`);
 }
 
-
-addPptxComment("/home/tharindu/Downloads/test.pptx", 5, {
+addPptxComment('/path/to/file.pptx', 3, {
   author: 'Tharindu',
   text: 'Test comment from script!',
   x: 0,
