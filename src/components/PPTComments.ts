@@ -170,7 +170,10 @@ export class PPTComments {
       } else {
           authorId = `${authorDoc.getElementsByTagName('p:cmAuthor').length}`;
           const el = authorDoc.createElement('p:cmAuthor');
+          el.setAttribute('clrIdx', '3');
           el.setAttribute('id', authorId);
+          el.setAttribute('initials', '');
+          el.setAttribute('lastIdx', '0');
           el.setAttribute('name', comment.author);
           authorDoc.documentElement.appendChild(el);
           zip.file(authorPath, serializer.serializeToString(authorDoc));
@@ -191,15 +194,20 @@ export class PPTComments {
       const cm = commentDoc.createElement('p:cm');
       cm.setAttribute('authorId', authorId);
       cm.setAttribute('dt', comment.date || new Date().toISOString());
+      const existingCmForAuthor = Array.from(commentDoc.getElementsByTagName('p:cm'))
+        .filter(el => el.getAttribute('authorId') === authorId);
+      const nextIdx = existingCmForAuthor.length + 1;
+      cm.setAttribute('idx', nextIdx.toString());
       const pos = commentDoc.createElement('p:pos');
       pos.setAttribute('x', String(comment.x));
       pos.setAttribute('y', String(comment.y));
-      pos.setAttribute('slideId', slideId!);
+      // pos.setAttribute('slideId', slideId!);
       cm.appendChild(pos);
       const text = commentDoc.createElement('p:text');
       text.textContent = comment.text;
       cm.appendChild(text);
       commentDoc.documentElement.appendChild(cm);
+      console.log(`${commentDoc}`)
       zip.file(commentPath, serializer.serializeToString(commentDoc));
 
       // Step 4: Update slideN.xml.rels
@@ -264,7 +272,7 @@ async function main() {
             console.log(`Position: (${comment.position.x}, ${comment.position.y})`);
         });
 
-        await PPTComments.addComment("/home/tharindu/Downloads/Versioning.pptx", 4, {
+        await PPTComments.addComment("/home/tharindu/Downloads/Versioning.pptx", 1, {
           author: 'Thor',
           text: 'adding comment test new code',
           x: 0, // Position in EMUs
