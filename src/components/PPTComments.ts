@@ -159,9 +159,28 @@ export class PPTComments {
       const authorPath = 'ppt/commentAuthors.xml';
       let authorId = '0';
       if (!zip.files[authorPath]) {
-          zip.file(authorPath, `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:commentAuthors xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"/>`);
+          console.log('createing new ayth')
+          zip.file(authorPath, 
+            `<p:cmAuthorLst
+                xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+                xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+                xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                xmlns:mv="urn:schemas-microsoft-com:mac:vml"
+                xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
+                xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart"
+                xmlns:dgm="http://schemas.openxmlformats.org/drawingml/2006/diagram"
+                xmlns:o="urn:schemas-microsoft-com:office:office"
+                xmlns:v="urn:schemas-microsoft-com:vml"
+                xmlns:pvml="urn:schemas-microsoft-com:office:powerpoint"
+                xmlns:com="http://schemas.openxmlformats.org/drawingml/2006/compatibility"
+                xmlns:p14="http://schemas.microsoft.com/office/powerpoint/2010/main"
+                xmlns:p15="http://schemas.microsoft.com/office/powerpoint/2012/main"
+                xmlns:ahyp="http://schemas.microsoft.com/office/drawing/2018/hyperlinkcolor">
+            </p:cmAuthorLst>`
+        );
       }
       const authorXml = await zip.files[authorPath].async('text');
+    //   console.log(`${authorXml}`)
       const authorDoc = parser.parseFromString(authorXml, 'text/xml');
       const existingAuthor = Array.from(authorDoc.getElementsByTagName('p:cmAuthor'))
           .find(a => a.getAttribute('name') === comment.author);
@@ -178,17 +197,36 @@ export class PPTComments {
           authorDoc.documentElement.appendChild(el);
           zip.file(authorPath, serializer.serializeToString(authorDoc));
       }
+      console.log(`${authorDoc}`)
 
       // Step 2: Find slide ID
       const presentationXml = await zip.files['ppt/presentation.xml'].async('text');
       const presentationDoc = parser.parseFromString(presentationXml, 'text/xml');
       const sldId = presentationDoc.getElementsByTagName('p:sldId')[slideNumber - 1];
-      const slideId = sldId.getAttribute('id');
+    //   const slideId = sldId.getAttribute('id');
 
       // Step 3: Create or update commentN.xml
       const commentPath = `ppt/comments/comment${slideNumber}.xml`;
       if (!zip.files[commentPath]) {
-          zip.file(commentPath, `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:cmLst xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"/>`);
+          console.log('creta new comm')
+          zip.file(commentPath, 
+            `<p:cmLst
+                xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+                xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+                xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                xmlns:mv="urn:schemas-microsoft-com:mac:vml"
+                xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
+                xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart"
+                xmlns:dgm="http://schemas.openxmlformats.org/drawingml/2006/diagram"
+                xmlns:o="urn:schemas-microsoft-com:office:office"
+                xmlns:v="urn:schemas-microsoft-com:vml"
+                xmlns:pvml="urn:schemas-microsoft-com:office:powerpoint"
+                xmlns:com="http://schemas.openxmlformats.org/drawingml/2006/compatibility"
+                xmlns:p14="http://schemas.microsoft.com/office/powerpoint/2010/main"
+                xmlns:p15="http://schemas.microsoft.com/office/powerpoint/2012/main"
+                xmlns:ahyp="http://schemas.microsoft.com/office/drawing/2018/hyperlinkcolor">
+            </p:cmLst>`
+        );
       }
       const commentDoc = parser.parseFromString(await zip.files[commentPath].async('text'), 'text/xml');
       const cm = commentDoc.createElement('p:cm');
@@ -216,6 +254,8 @@ export class PPTComments {
           zip.file(relSlidePath, `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"/>`);
       }
       const slideRelDoc = parser.parseFromString(await zip.files[relSlidePath].async('text'), 'text/xml');
+      console.log(`slideRelDoc`)
+      console.log(`${slideRelDoc}`)
       ensureRelationship(slideRelDoc, 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/comments', `../comments/comment${slideNumber}.xml`);
       zip.file(relSlidePath, serializer.serializeToString(slideRelDoc));
 
@@ -260,7 +300,7 @@ export class PPTComments {
 // Example usage:
 async function main() {
     try {
-        const comments = await PPTComments.getComments("/home/tharindu/Downloads/Versioning.pptx");
+        const comments = await PPTComments.getComments("C:\\Users\\hatharasinghageth\\Documents\\Test\\dac\\demo_files\\versioning.pptx");
         console.log('PowerPoint Comments:');
         console.log(comments);
         comments.forEach((comment, index) => {
@@ -272,7 +312,7 @@ async function main() {
             console.log(`Position: (${comment.position.x}, ${comment.position.y})`);
         });
 
-        await PPTComments.addComment("/home/tharindu/Downloads/Versioning.pptx", 1, {
+        await PPTComments.addComment("C:\\Users\\hatharasinghageth\\Documents\\Test\\dac\\demo_files\\versioning.pptx", 1, {
           author: 'Thor',
           text: 'adding comment test new code',
           x: 0, // Position in EMUs
