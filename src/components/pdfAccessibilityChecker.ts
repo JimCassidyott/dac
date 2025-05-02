@@ -1581,8 +1581,10 @@ export class PdfAccessibilityChecker {
           report.additionalNotes = "Note: We are actively working on implementing tests for WCAG 2.4.5 Multiple Ways, WCAG 1.3.2 Meaningful Sequence, and WCAG 2.4.3 Focus Order. For Multiple Ways, we need to gather requirements from sight-impaired users to determine acceptable navigation methods. For Meaningful Sequence, we're developing algorithms to verify that the reading order in PDF documents is logical. For Focus Order, we're analyzing how to test that interactive elements follow a sequence that preserves meaning and operability for screen reader users.";
           
           // Save the report to a file
-          const reportPath = pdfPath.replace(/\.pdf$/i, '-accessibility-report.json');
-          await AccessibilityReportGenerator.saveReport(report, reportPath);
+          // const reportPath = pdfPath.replace(/\.pdf$/i, '-accessibility-report.json');
+          // AccessibilityReportGenerator.saveReport(report, reportPath);
+          AccessibilityReportGenerator.saveHTMLReport(AccessibilityReportGenerator.generateHtml(report), 
+            pdfPath.replace(/\.pdf$/i, '-accessibility-report.html'));
           
           return report;
       } catch (error) {
@@ -1599,6 +1601,85 @@ export class PdfAccessibilityChecker {
  * generates a comprehensive report in JSON format.
  */
 export class AccessibilityReportGenerator {
+  /**
+   * Generates a HTML accessibility report for a PDF document
+   * @param report JSON AccessibilityReport
+   * @param outputPath Path to save the report
+   */
+  static generateHtml(report: AccessibilityReport): string {
+    const issueHtml = report.issues.map(issue => `
+      <div class="issue">
+        <strong>Criterion:</strong> ${issue.criterion}<br/>
+        <strong>Description:</strong> ${issue.description}<br/>
+        <strong>Impact:</strong> ${issue.impact}<br/>
+        <strong>Remediation:</strong>
+        <ul>
+          <li><strong>Location:</strong> ${issue.remediation.location}</li>
+          <li><strong>Steps:</strong> <ul>${issue.remediation.steps.map(s => `<li>${s}</li>`).join('')}</ul></li>
+          <li><strong>Tools:</strong> <ul>${issue.remediation.tools.map(t => `<li>${t}</li>`).join('')}</ul></li>
+          <li><strong>Priority:</strong> ${issue.remediation.priority}</li>
+        </ul>
+      </div>
+    `).join('');
+  
+    const pendingHtml = report.pendingTests.map(test => `
+      <div class="pending">
+        <strong>Criterion:</strong> ${test.criterion}<br/>
+        <strong>Status:</strong> <span class="tag">${test.status}</span><br/>
+        <strong>Reason:</strong> ${test.reason}
+      </div>
+    `).join('');
+  
+    const docDetails = report.documentType.details.map(d => `<li>${d}</li>`).join('');
+  
+    return `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8" />
+      <title>Accessibility Compliance Report for ${report.filename}</title>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 2em; line-height: 1.6; }
+        h1 { border-bottom: 2px solid #333; }
+        .issue, .pending { border: 1px solid #ccc; border-left: 4px solid #e74c3c; padding: 1em; margin-top: 1em; }
+        .pending { border-left-color: #f39c12; }
+        .tag { display: inline-block; background: #eee; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+      </style>
+    </head>
+    <body>
+      <h1>Accessibility Compliance Report for ${report.filename}</h1>
+  
+      <section><strong>Passed:</strong> ${report.passed ? '✅ Yes' : '❌ No'}</section>
+  
+      <section><h2>Detected Issues</h2>${issueHtml}</section>
+  
+      <section><h2>Pending Tests</h2>${pendingHtml}</section>
+  
+      <section><h2>Document Type</h2>
+        <p><strong>Is Form:</strong> ${report.documentType.isForm}</p>
+        <p><strong>Is Document:</strong> ${report.documentType.isDocument}</p>
+        <p><strong>Confidence:</strong> ${report.documentType.confidence}%</p>
+        <ul>${docDetails}</ul>
+      </section>
+  
+      <section><h2>Additional Notes</h2><p>${report.additionalNotes}</p></section>
+  
+      <footer><em>Report generated at: ${new Date(report.timestamp).toLocaleString()}</em></footer>
+    </body>
+    </html>
+    `;
+  }
+  
+  /**
+   * Saves a HTML report to a file
+   * @param htmlReport Accessibility report
+   * @param outputPath Path to save the report
+   */
+  static saveHTMLReport(htmlReport: string, outputPath: string) {
+    fs.writeFileSync(outputPath, htmlReport, 'utf-8');
+    console.log(`HTML Accessibility report saved to: ${outputPath}`);
+  }
+  
   /**
    * Generates an accessibility report for a PDF document
    * @param pdfPath Path to the PDF file
