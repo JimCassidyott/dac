@@ -188,7 +188,7 @@ export class PdfLoader {
   static async loadWithPdfJs(pdfPath: string): Promise<pdfjsLib.PDFDocumentProxy> {
       try {
           const data = new Uint8Array(fs.readFileSync(pdfPath));
-          return await pdfjsLib.getDocument({ data }).promise;
+          return await pdfjsLib.getDocument({ enableXfa: true, data }).promise;
       } catch (error) {
           console.error(`Error loading PDF with pdf.js: ${(error as Error).message}`);
           throw error;
@@ -467,7 +467,7 @@ export class TextExtractor {
               
               textItems.push(textItem);
           }
-          
+          console.log(textItems)
           return textItems;
       } catch (error) {
           console.error(`Error extracting text from page ${pageNum}:`, error);
@@ -1010,6 +1010,8 @@ export class WcagTests {
                 const page = await pdfDoc.getPage(pageNum);
                 
                 // Extract text from the page
+              console.log(await pdfDoc.getData()); 
+
                 const extractionResult = await TextExtractor.extractTextFromPage(page, pageNum);
 
                 textContents.push(...extractionResult);
