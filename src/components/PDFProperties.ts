@@ -7,6 +7,8 @@ import { GCDocsAdapter } from './GCDocsAdaptor';
 import { PdfAccessibilityChecker, AccessibilityReport } from './pdfAccessibilityChecker';
 import * as path from 'path';
 
+const PDFLIB_EncryptedPDFError_MESSAGE = "Input document to `PDFDocument.load` is encrypted. You can use `PDFDocument.load(..., { ignoreEncryption: true })` if you wish to load the document anyways.";
+
 /**
  * Takes a path to a PDF file and returns a PDFDocument object
  *
@@ -43,14 +45,13 @@ export async function isAccessible(filePath: string, fileSource: string): Promis
     filePath = await adapter.downloadDocumentContent(filePath);
   }
 
-  const pdfDoc: PDFDocument = await getPDFDocument(filePath);
-  const keywords = pdfDoc.getKeywords();
-
-  if (!keywords) {
-    return AccessibilityStatus.Untested;
-  }
-
   try {
+    const pdfDoc: PDFDocument = await getPDFDocument(filePath);
+    const keywords = pdfDoc.getKeywords();
+  
+    if (!keywords) {
+      return AccessibilityStatus.Untested;
+    }
     const metadata = JSON.parse(keywords);
     const accessibilityStatus = metadata.isAccessible;
 
@@ -110,6 +111,9 @@ export async function updateIsAccessibleProperty(
 
     return accessibilityStatus;
   } catch (error) {
+    if (error.message.includes(PDFLIB_EncryptedPDFError_MESSAGE)) {
+      return accessibilityStatus;
+    }
     console.error('Error updating isAccessible property:', error);
     throw new Error('Failed to update the isAccessible property of the PDF.');
   }
@@ -124,7 +128,7 @@ export async function testPDFAccessibility(filePath: string, fileSource: string)
     }
     // do testing here
     let outPath = `./temp/PDFTestResults/${path.basename(filePath).replace(/\.pdf$/i, '')}-accessibility-report.json`;
-    let result: AccessibilityReport = await PdfAccessibilityChecker.checkAccessibility(filePath,);
+    let result: AccessibilityReport = await PdfAccessibilityChecker.checkAccessibility(filePath);
     let accStatus: AccessibilityStatus = result.passed ? AccessibilityStatus.ManualTestingRequired : AccessibilityStatus.NotAccessible; 
     
     // once automated testing is done set isAccessible property as AccessibilityStatus.RequiresManualTesting
@@ -139,7 +143,7 @@ export async function testPDFAccessibility(filePath: string, fileSource: string)
 
 
 async function main() {
-  const filePath = '/home/tharindu/Documents/work/test_dac/dac/demo_files/accessible/Discipline_Specific_Action_Verb_Tip_Sheet (copy).pdf';
+  const filePath = 'C:\\Users\\hatharasinghageth\\Documents\\Test\\dac\\src\\components\\bad.pdf';
 
   const test = await isAccessible(filePath, "SYSTEM");
   console.log(`Initial accessibility status: ${test}`);
