@@ -427,21 +427,15 @@ export class PdfMetadataExtractor {
 
   /**
    * Checks if a PDF document has language metadata
-   * @param pdfDoc PDF document (from either pdf-lib or pdf.js)
+   * @param pdfDoc PDF document (pdf.js)
    * @returns Promise resolving to a boolean indicating if language metadata is present
    */
-  static async hasLanguageMetadata(pdfDoc: pdfjsLib.PDFDocumentProxy | PDFDocument): Promise<boolean> {
+  static async hasLanguageMetadata(pdfDoc: pdfjsLib.PDFDocumentProxy): Promise<boolean> {
     try {
-        if ('getMetadata' in pdfDoc) {
-            // This is a pdf.js document
-            const metadata: any = (await pdfDoc.getMetadata()).info;
-            return metadata.Language != null;
-        } else {
-            // This is a pdf-lib document
-            return !!pdfDoc.getAuthor() || !!pdfDoc.getCreator() || 
-                   !!pdfDoc.getProducer() || !!pdfDoc.getSubject() || 
-                   !!pdfDoc.getTitle();
-        }
+        // This is a pdf.js document
+        const metadata: any = (await pdfDoc.getMetadata()).info;
+        return metadata.Language != null;
+
     } catch (error) {
         console.error("Error checking PDF metadata:", error);
         return false;
