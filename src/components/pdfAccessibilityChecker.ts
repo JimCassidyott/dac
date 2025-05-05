@@ -424,6 +424,29 @@ export class PdfMetadataExtractor {
           return false;
       }
   }
+
+  /**
+   * Checks if a PDF document has language metadata
+   * @param pdfDoc PDF document (from either pdf-lib or pdf.js)
+   * @returns Promise resolving to a boolean indicating if language metadata is present
+   */
+  static async hasLanguageMetadata(pdfDoc: pdfjsLib.PDFDocumentProxy | PDFDocument): Promise<boolean> {
+    try {
+        if ('getMetadata' in pdfDoc) {
+            // This is a pdf.js document
+            const metadata: any = (await pdfDoc.getMetadata()).info;
+            return metadata.Language != null;
+        } else {
+            // This is a pdf-lib document
+            return !!pdfDoc.getAuthor() || !!pdfDoc.getCreator() || 
+                   !!pdfDoc.getProducer() || !!pdfDoc.getSubject() || 
+                   !!pdfDoc.getTitle();
+        }
+    } catch (error) {
+        console.error("Error checking PDF metadata:", error);
+        return false;
+    }
+  }
 }
 
 
@@ -467,7 +490,6 @@ export class TextExtractor {
               
               textItems.push(textItem);
           }
-          console.log(textItems)
           return textItems;
       } catch (error) {
           console.error(`Error extracting text from page ${pageNum}:`, error);
@@ -957,10 +979,10 @@ export class WcagTests {
     static async testDocumentLanguage(pdfDoc: pdfjsLib.PDFDocumentProxy): Promise<{ passed: boolean; issue?: AccessibilityIssue }> {
         try {
             // Check if there's metadata in the document
-            const hasMetadata = await PdfMetadataExtractor.hasMetadata(pdfDoc);
+            const hasLanguageMetadata = await PdfMetadataExtractor.hasLanguageMetadata(pdfDoc);
 
-            // If no metadata is found, return an accessibility issue
-            if (!hasMetadata) {
+            // If no Language metadata is found, return an accessibility issue
+            if (!hasLanguageMetadata) {
                 return {
                     passed: false,
                     issue: WcagTests.IssueFactory.createIssue(
@@ -1010,8 +1032,6 @@ export class WcagTests {
                 const page = await pdfDoc.getPage(pageNum);
                 
                 // Extract text from the page
-              console.log(await pdfDoc.getData()); 
-
                 const extractionResult = await TextExtractor.extractTextFromPage(page, pageNum);
 
                 textContents.push(...extractionResult);
