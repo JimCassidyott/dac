@@ -1,7 +1,7 @@
 {
-  "name": "electron-quick-start-typescript",
+  "name": "Document Accessibility Checker",
   "version": "1.0.0",
-  "description": "A minimal Electron application written with Typescript",
+  "description": "An Application for testing Documents for Accessibility Compliance",
   "scripts": {
     "build": "npx tsc",
     "watch": "npx tsc -w",
