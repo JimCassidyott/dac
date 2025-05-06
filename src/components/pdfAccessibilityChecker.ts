@@ -1831,44 +1831,71 @@ export class AccessibilityReportGenerator {
             priority: 'High'
         };
     }
-    else if ('1.1.1') {
+    else if (issue.includes('1.1.1')) {
       return {
-        location: "temp location",
+        location: "Image without Alternative Text",
         steps: [
-          'temp steps'
+          'Open the PDF in Foxit PDF Editor',
+          'Click on Accessibilty > Full Check > Start Checking',
+          'From the left side menu click on "View the Accessibility Checker results and fix errors"',
+          'Right click on "Accessibilty Check" and Select "Tags"',
+          'Confirm the image is correctly tagged as a Figure',
+          'Right click on the Figure tag and select Properties',
+          'Add alt text to the figure'
         ],
-        tools: ['temp tools'],
-        priority: 'temp priority'
+        tools: ['Foxit PDF Editor', 'Foxit Accessibility Checker'],
+        priority: 'High'
       };
     }
     else if (issue.includes('2.4.2')) {
       return {
-        location: "temp location",
+        location: "Page Title",
         steps: [
-          'temp steps'
+          'Open the PDF in Foxit PDF Editor',
+          'Click on File > Properties',
+          'Add Title'
         ],
-        tools: ['temp tools'],
-        priority: 'temp priority'
+        tools: ['Foxit PDF Editor'],
+        priority: 'High'
       };
     }
-    else if ('2.4.4') {
+    else if (issue.includes('2.4.4')) {
       return {
-        location: "temp location",
+        location: "Links",
         steps: [
-          'temp steps'
+          'Open the PDF in Foxit PDF Editor',
+          ''
         ],
-        tools: ['temp tools'],
-        priority: 'temp priority'
+        tools: ['Foxit PDF Editor'],
+        priority: 'High'
       };
     }
-    else if ('3.1.2') {
+    else if (issue.includes('3.1.1')) {
+        return {
+          location: "Language of Page",
+          steps: [
+            'Open the PDF in Foxit PDF Editor',
+            'Click on File > Properties > Advanced',
+            'Select the language from the Language dropdown menu under Reading Options section'
+          ],
+          tools: ['Foxit PDF Editor'],
+          priority: 'High'
+        };
+    }
+    else if (issue.includes('3.1.2')) {
       return {
-        location: "temp location",
+        location: "Paragrapghs",
         steps: [
-          'temp steps'
+            'Open the PDF in Foxit PDF Editor',
+            'Click on Accessibilty > Full Check > Start Checking',
+            'From the left side menu click on "View the Accessibility Checker results and fix errors"',
+            'Right click on "Accessibilty Check" and Select "Tags"',
+            'Find the <p> Tag realated to the paragrapgh',
+            'Right click on the <p> tag and click Properties',
+            'Select the language from the Language dropdown menu'
         ],
-        tools: ['temp tools'],
-        priority: 'temp priority'
+        tools: ['Foxit PDF Editor'],
+        priority: 'Low'
       };
     }
     
