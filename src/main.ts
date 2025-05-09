@@ -3,13 +3,14 @@ import * as pathModule from "path";
 import { SystemAdapter } from './components/systemAdaptor';
 import { IFolderContents } from "./Interfaces/IFolderContents";
 import { IFile } from "./Interfaces/IFile";
-import { changeIsAccessibleProperty, isAccessible, testAccessiblity } from "./components/MSWordAccessibilityChecker";
+import { isAccessible, testAccessiblity } from "./components/MSWordAccessibilityChecker";
 import ProgressBar = require('electron-progressbar');
 import { GCDocsAdapter } from './components/GCDocsAdaptor';
 import { isWordDOC, isPDFDoc } from './components/helpers';
 import * as PDFProperties from './components/PDFProperties';
 import * as fs from 'fs';
 import { AccessibilityStatus } from "./components/helpers";
+import { MSOfficeMetadata } from './components/MSOfficeMetadata';
 
 let mainWindow: Electron.BrowserWindow = null;
 function createWindow() {
@@ -57,7 +58,7 @@ function createWindow() {
           {
             label: 'Change accessibility status',
             click: async () => {
-              await changeIsAccessibleProperty(arg.path, !await isAccessible(arg.path, fileSource));
+              await MSOfficeMetadata.changeIsAccessibleProperty(arg.path, !await isAccessible(arg.path, fileSource));
               let nAccessibility = await isAccessible(arg.path, fileSource);
               mainWindow.webContents.send('context-menu-action', {action: 'change-accessibility-status', path: arg.path, accStatus: nAccessibility.toString()});
             }
@@ -332,7 +333,7 @@ async function testFile(path: string): Promise<AccessibilityStatus> {
     let fIsAccessible: AccessibilityStatus = null;
     if (await isWordDOC(path, fileSource)) {
       const {filePath, fileIsAccessible} = await testAccessiblity(path, fileSource); 
-      await changeIsAccessibleProperty(filePath, fileIsAccessible === AccessibilityStatus.Accessible);
+      await MSOfficeMetadata.changeIsAccessibleProperty(filePath, fileIsAccessible === AccessibilityStatus.Accessible);
       fPath = filePath;
       fIsAccessible = fileIsAccessible;
     }

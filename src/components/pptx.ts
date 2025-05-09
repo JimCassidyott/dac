@@ -3,6 +3,7 @@ import * as unzipper from 'unzipper';
 import { parseStringPromise } from "xml2js";
 import { hex as contrastRatio } from "wcag-contrast";
 import { PPTComments } from "./PPTComments";
+import * as MSWordAccessibilityChecker from './MSWordAccessibilityChecker';
 
 export interface Issue {
   slideNumber: number,
@@ -69,12 +70,12 @@ async function checkSlideTitle(filePath: string): Promise<Issue[]> {
 
     if (headings.length === 0) {
       console.warn(`Slide ${slideIndex}: Missing title placeholder (no heading).`);
-      const pos = extractPosition(null);
-      issues.push({
-        slideNumber: slideIndex,
-        issueText: `Slide ${slideIndex}: Missing title placeholder (no heading).`,
-        position: pos
-      });
+      // const pos = extractPosition(null);
+      // issues.push({
+      //   slideNumber: slideIndex,
+      //   issueText: `Slide ${slideIndex}: Missing title placeholder (no heading).`,
+      //   position: pos
+      // });
     } else {
       console.log(`Slide ${slideIndex}: Found ${headings.length} title placeholder(s).`);
     }
@@ -101,12 +102,12 @@ async function checkContrast(filePath: string): Promise<Issue[]> {
             const contrast = contrastRatio(`#${textColor}`, `#${bgColor}`);
             if (contrast < 4.5) { // WCAG AA threshold
                 console.warn(`Slide ${slideIndex}, Text ${index + 1}: Low contrast (Ratio: ${contrast.toFixed(2)}).`);
-              const pos = extractPosition(text);
-                issues.push({
-                  slideNumber: slideIndex,
-                  issueText: `Slide ${slideIndex}, Text ${index + 1}: Low contrast (Ratio: ${contrast.toFixed(2)}).`,
-                  position: pos
-                });
+              // const pos = extractPosition(text);
+              //   issues.push({
+              //     slideNumber: slideIndex,
+              //     issueText: `Slide ${slideIndex}, Text ${index + 1}: Low contrast (Ratio: ${contrast.toFixed(2)}).`,
+              //     position: pos
+              //   });
             }
         });
     }
@@ -171,12 +172,12 @@ async function checkEmptySlides(filePath: string): Promise<Issue[]> {
 
       if (!hasText && !hasImages) {
           console.warn(`Slide ${slideFiles.indexOf(slideFile) + 1} is empty.`);
-          const pos = extractPosition(null);
-          issues.push({
-            slideNumber: slideFiles.indexOf(slideFile) + 1,
-            issueText: `Slide ${slideFiles.indexOf(slideFile) + 1} is empty.`,
-            position: pos
-          });
+          // const pos = extractPosition(null);
+          // issues.push({
+          //   slideNumber: slideFiles.indexOf(slideFile) + 1,
+          //   issueText: `Slide ${slideFiles.indexOf(slideFile) + 1} is empty.`,
+          //   position: pos
+          // });
       }
   }
   return issues;
@@ -205,12 +206,12 @@ async function checkPowerPointTableHeaders(filePath: string): Promise<Issue[]> {
 
       if (!hasHeaderRow) {
         console.warn(`Slide ${slideIndex}: Table is missing a proper header row (firstRow flag not set).`);
-        const pos = extractPosition(tbl);
-        issues.push({
-          slideNumber: slideIndex,
-          issueText: `Slide ${slideIndex}: Table is missing a proper header row (firstRow flag not set).`,
-          position: pos
-        });
+        // const pos = extractPosition(tbl);
+        // issues.push({
+        //   slideNumber: slideIndex,
+        //   issueText: `Slide ${slideIndex}: Table is missing a proper header row (firstRow flag not set).`,
+        //   position: pos
+        // });
       } else {
         console.log(`Slide ${slideIndex}: Table has header row enabled.`);
       }
@@ -237,12 +238,12 @@ async function checkAltTextAllVisuals(filePath: string): Promise<Issue[]> {
           const alt = item["p:nvPicPr"]?.[0]["p:cNvPr"]?.[0]?.["$"]?.descr || "";
           if (!alt.trim()) {
               console.warn(`Slide ${slideIndex}, Image ${index + 1}: Missing alt text.`);
-              const pos = extractPosition(item);
-              issues.push({
-                slideNumber: slideIndex,
-                issueText: `Slide ${slideIndex}, Image ${index + 1}: Missing alt text.`,
-                position: pos
-              });
+              // const pos = extractPosition(item);
+              // issues.push({
+              //   slideNumber: slideIndex,
+              //   issueText: `Slide ${slideIndex}, Image ${index + 1}: Missing alt text.`,
+              //   position: pos
+              // });
           }
       });
 
@@ -252,12 +253,12 @@ async function checkAltTextAllVisuals(filePath: string): Promise<Issue[]> {
           const alt = item["p:nvSpPr"]?.[0]["p:cNvPr"]?.[0]?.["$"]?.descr || "";
           if (!alt.trim()) {
               console.warn(`Slide ${slideIndex}, Shape ${index + 1}: Missing alt text.`);
-              const pos = extractPosition(item);
-              issues.push({
-                slideNumber: slideIndex,
-                issueText: `Slide ${slideIndex}, Shape ${index + 1}: Missing alt text.`,
-                position: pos
-              });
+              // const pos = extractPosition(item);
+              // issues.push({
+              //   slideNumber: slideIndex,
+              //   issueText: `Slide ${slideIndex}, Shape ${index + 1}: Missing alt text.`,
+              //   position: pos
+              // });
           }
       });
 
@@ -274,12 +275,12 @@ async function checkAltTextAllVisuals(filePath: string): Promise<Issue[]> {
 
           if (!alt.trim()) {
               console.warn(`Slide ${slideIndex}, ${type} ${index + 1}: Missing alt text.`);
-              const pos = extractPosition(item);
-              issues.push({
-                slideNumber: slideIndex,
-                issueText: `Slide ${slideIndex}, ${type} ${index + 1}: Missing alt text.`,
-                position: pos
-              });
+              // const pos = extractPosition(item);
+              // issues.push({
+              //   slideNumber: slideIndex,
+              //   issueText: `Slide ${slideIndex}, ${type} ${index + 1}: Missing alt text.`,
+              //   position: pos
+              // });
           }
       });
   }
@@ -328,12 +329,12 @@ async function checkRawURLLinks(filePath: string): Promise<Issue[]> {
           if (text && target) {
             if (text === target || text.startsWith("http")) {
               console.warn(`Slide ${slideIndex}: Link text is a raw URL -> "${text}". Use descriptive text instead.`);
-              const pos = extractPosition(shape);
-              issues.push({
-                slideNumber: slideIndex,
-                issueText: `Slide ${slideIndex}: Link text is a raw URL -> "${text}". Use descriptive text instead.`,
-                position: pos
-              });
+              // const pos = extractPosition(shape);
+              // issues.push({
+              //   slideNumber: slideIndex,
+              //   issueText: `Slide ${slideIndex}: Link text is a raw URL -> "${text}". Use descriptive text instead.`,
+              //   position: pos
+              // });
             }
           }
         }
@@ -362,10 +363,13 @@ export async function testPPTXDoc(filePath: string){
 }
 
 async function runPPTXTests() {
-  await testPPTXDoc("/home/tharindu/Downloads/Versioning.pptx");
+  // await testPPTXDoc("/home/tharindu/Downloads/Versioning.pptx");
+  // console.log(await MSWordAccessibilityChecker.isAccessible("/home/tharindu/Downloads/Versioning.pptx", 'SYSTEM'));
+  // console.log(await MSWordAccessibilityChecker.changeIsAccessibleProperty("/home/tharindu/Downloads/Versioning.pptx", false));
+  // console.log(await MSWordAccessibilityChecker.isAccessible("/home/tharindu/Downloads/Versioning.pptx", 'SYSTEM'));
   // await checkAltText("/home/tharindu/Downloads/Versioning.pptx");
   // console.log(await checkSlideTitle("/home/tharindu/Downloads/Versioning.pptx"));
-  // console.log(await checkContrast("/home/tharindu/Downloads/Versioning.pptx"));
+  console.log(await checkContrast("/home/tharindu/Downloads/Versioning.pptx"));
   // // await checkReadingOrder("/home/tharindu/Downloads/Versioning.pptx");
   // console.log(await checkEmptySlides("/home/tharindu/Downloads/Versioning.pptx"));
   // console.log(await checkPowerPointTableHeaders("/home/tharindu/Downloads/Versioning.pptx"));
