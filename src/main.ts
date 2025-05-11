@@ -3,7 +3,7 @@ import * as pathModule from "path";
 import { SystemAdapter } from './components/systemAdaptor';
 import { IFolderContents } from "./Interfaces/IFolderContents";
 import { IFile } from "./Interfaces/IFile";
-import { isAccessible, testAccessiblity } from "./components/MSWordAccessibilityChecker";
+import { testAccessiblity } from "./components/MSWordAccessibilityChecker";
 import ProgressBar = require('electron-progressbar');
 import { GCDocsAdapter } from './components/GCDocsAdaptor';
 import { isWordDOC, isPDFDoc } from './components/helpers';
@@ -58,8 +58,8 @@ function createWindow() {
           {
             label: 'Change accessibility status',
             click: async () => {
-              await MSOfficeMetadata.changeIsAccessibleProperty(arg.path, !await isAccessible(arg.path, fileSource));
-              let nAccessibility = await isAccessible(arg.path, fileSource);
+              await MSOfficeMetadata.changeIsAccessibleProperty(arg.path, !await MSOfficeMetadata.isAccessible(arg.path, fileSource));
+              let nAccessibility = await MSOfficeMetadata.isAccessible(arg.path, fileSource);
               mainWindow.webContents.send('context-menu-action', {action: 'change-accessibility-status', path: arg.path, accStatus: nAccessibility.toString()});
             }
           }
@@ -247,7 +247,7 @@ async function markFilesAccessibility(contents: IFile[], path: string): Promise<
   for (const file of contents) {     
     let adjustedPath = path == './' ? (path + file.name) : (path + "/" + file.name);
     if(await isWordDOC(adjustedPath, fileSource)) {
-      file.isAccessible = await isAccessible(file.path, fileSource);
+      file.isAccessible = await MSOfficeMetadata.isAccessible(file.path, fileSource);
       markedFiles.push(file);
     }
     else if (await isPDFDoc(adjustedPath)) {
@@ -300,7 +300,7 @@ async function handleGetReport(path: string) {
       documents.map(async (filePath) => { // Create IFile objects with name, path, and fileCount initialized to 0
         let accessibilityStatus = AccessibilityStatus.Untested;
         if (await isWordDOC(filePath, fileSource)) {   
-          accessibilityStatus = await isAccessible(filePath, fileSource);   
+          accessibilityStatus = await MSOfficeMetadata.isAccessible(filePath, fileSource);   
         }
         else if (await isPDFDoc(filePath)) {   
           accessibilityStatus = await PDFProperties.isAccessible(filePath, fileSource);  

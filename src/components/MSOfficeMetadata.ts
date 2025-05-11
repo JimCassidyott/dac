@@ -3,8 +3,8 @@ const AdmZip = require('adm-zip');
 import * as xml2js from 'xml2js';
 import * as JSZip from 'jszip';
 import * as fs from 'fs';
-
-
+import { AccessibilityStatus } from './helpers';
+import { GCDocsAdapter } from './GCDocsAdaptor';
 
 export class MSOfficeMetadata {
   /**
@@ -214,5 +214,38 @@ export class MSOfficeMetadata {
         console.error('Error processing XML:', err);
         throw err;
     }
+  }
+
+  /**
+   * Asynchronously checks the accessibility of a Word document by reading its custom properties XML.
+   *
+   * @param {string} filePath - The path to the Word document.
+   * @return {Promise<AccessibilityStatus>} A Promise that resolves to an AccessibilityStatus enum value.
+   */
+  public static async isAccessible(filePath: string, fileSource: string): Promise<AccessibilityStatus> {
+    if (fileSource === 'GCDOCS') {
+        let adapter = new GCDocsAdapter();
+        filePath = await adapter.downloadDocumentContent(filePath);
+
+    }
+    // Read the custom properties XML
+    const customProperties = await this.readCustomPropertiesXml(filePath);
+    if (!customProperties || !customProperties.Properties || !customProperties.Properties.property) {
+        return AccessibilityStatus.Untested;
+    }
+
+    let accessibilityStatus: AccessibilityStatus = AccessibilityStatus.Untested;
+    if (customProperties && customProperties.Properties && customProperties.Properties.property) {        
+        customProperties.Properties.property.forEach((prop: any) => {
+            if (prop.$.name === "isAccessible") {
+
+              accessibilityStatus = prop["vt:bool"] == '1' ? AccessibilityStatus.Accessible : AccessibilityStatus.NotAccessible;
+            }
+        });
+    } else {
+        console.log("No custom properties found in this document. Run the cecker.", filePath);
+        accessibilityStatus = AccessibilityStatus.Untested;
+    }
+    return accessibilityStatus;
   }
 }
