@@ -44,6 +44,14 @@ export async function isPDFDoc(filePath: string): Promise<boolean> {
   return true;
 }
 
+export async function isPPTXDoc(filePath: string): Promise<boolean> {
+  const fileExtension: string = path.extname(filePath).toLowerCase();
+  if (fileExtension !== '.pptx') {
+    return false;
+  }
+  return true;
+}
+
 export enum AccessibilityStatus {
   Accessible = "Accessible",
   NotAccessible = "Not Accessible",

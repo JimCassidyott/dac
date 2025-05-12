@@ -1,4 +1,4 @@
-import { isAccessible } from "./MSWordAccessibilityChecker";
+import { MSOfficeMetadata } from './MSOfficeMetadata';
 import { SystemAdapter } from "./systemAdaptor";
 import { AccessibilityStatus } from "./helpers";
 import * as fs from 'fs';
@@ -102,7 +102,7 @@ function filterDocxFiles(contents: IFile[]): IFile[] {
 async function markFilesAccessibility(contents: IFile[]): Promise<IFile[]> {
     const markedFiles: IFile[] = [];
     for (const file of contents) {
-        file.isAccessible = await isAccessible((filePath + '/' + file.name), "SYSTEM");
+        file.isAccessible = await MSOfficeMetadata.isAccessible((filePath + '/' + file.name), "SYSTEM");
         markedFiles.push(file);
     }
 

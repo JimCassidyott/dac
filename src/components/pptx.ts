@@ -2,15 +2,14 @@ import * as fs from 'fs';
 import * as unzipper from 'unzipper';
 import { parseStringPromise } from "xml2js";
 import { hex as contrastRatio } from "wcag-contrast";
-import { PPTComments } from "./PPTComments";
+import * as path from 'path';
+import { AccessibilityStatus } from './helpers';
+import { GCDocsAdapter } from './GCDocsAdaptor';
+import { MSOfficeMetadata } from './MSOfficeMetadata';
 
 export interface Issue {
   slideNumber: number,
   issueText: string,
-  position: {
-    x: number,
-    y: number
-  };
 };
 
 function extractPosition(item: any): { x: number, y: number } {
@@ -69,11 +68,9 @@ async function checkSlideTitle(filePath: string): Promise<Issue[]> {
 
     if (headings.length === 0) {
       console.warn(`Slide ${slideIndex}: Missing title placeholder (no heading).`);
-      const pos = extractPosition(null);
       issues.push({
         slideNumber: slideIndex,
         issueText: `Slide ${slideIndex}: Missing title placeholder (no heading).`,
-        position: pos
       });
     } else {
       console.log(`Slide ${slideIndex}: Found ${headings.length} title placeholder(s).`);
@@ -101,11 +98,9 @@ async function checkContrast(filePath: string): Promise<Issue[]> {
             const contrast = contrastRatio(`#${textColor}`, `#${bgColor}`);
             if (contrast < 4.5) { // WCAG AA threshold
                 console.warn(`Slide ${slideIndex}, Text ${index + 1}: Low contrast (Ratio: ${contrast.toFixed(2)}).`);
-              const pos = extractPosition(text);
                 issues.push({
-                  slideNumber: slideIndex,
+                slideNumber: slideIndex,
                   issueText: `Slide ${slideIndex}, Text ${index + 1}: Low contrast (Ratio: ${contrast.toFixed(2)}).`,
-                  position: pos
                 });
             }
         });
@@ -171,11 +166,9 @@ async function checkEmptySlides(filePath: string): Promise<Issue[]> {
 
       if (!hasText && !hasImages) {
           console.warn(`Slide ${slideFiles.indexOf(slideFile) + 1} is empty.`);
-          const pos = extractPosition(null);
           issues.push({
             slideNumber: slideFiles.indexOf(slideFile) + 1,
             issueText: `Slide ${slideFiles.indexOf(slideFile) + 1} is empty.`,
-            position: pos
           });
       }
   }
@@ -205,11 +198,9 @@ async function checkPowerPointTableHeaders(filePath: string): Promise<Issue[]> {
 
       if (!hasHeaderRow) {
         console.warn(`Slide ${slideIndex}: Table is missing a proper header row (firstRow flag not set).`);
-        const pos = extractPosition(tbl);
         issues.push({
           slideNumber: slideIndex,
           issueText: `Slide ${slideIndex}: Table is missing a proper header row (firstRow flag not set).`,
-          position: pos
         });
       } else {
         console.log(`Slide ${slideIndex}: Table has header row enabled.`);
@@ -237,11 +228,9 @@ async function checkAltTextAllVisuals(filePath: string): Promise<Issue[]> {
           const alt = item["p:nvPicPr"]?.[0]["p:cNvPr"]?.[0]?.["$"]?.descr || "";
           if (!alt.trim()) {
               console.warn(`Slide ${slideIndex}, Image ${index + 1}: Missing alt text.`);
-              const pos = extractPosition(item);
               issues.push({
                 slideNumber: slideIndex,
                 issueText: `Slide ${slideIndex}, Image ${index + 1}: Missing alt text.`,
-                position: pos
               });
           }
       });
@@ -252,11 +241,9 @@ async function checkAltTextAllVisuals(filePath: string): Promise<Issue[]> {
           const alt = item["p:nvSpPr"]?.[0]["p:cNvPr"]?.[0]?.["$"]?.descr || "";
           if (!alt.trim()) {
               console.warn(`Slide ${slideIndex}, Shape ${index + 1}: Missing alt text.`);
-              const pos = extractPosition(item);
               issues.push({
                 slideNumber: slideIndex,
                 issueText: `Slide ${slideIndex}, Shape ${index + 1}: Missing alt text.`,
-                position: pos
               });
           }
       });
@@ -274,11 +261,9 @@ async function checkAltTextAllVisuals(filePath: string): Promise<Issue[]> {
 
           if (!alt.trim()) {
               console.warn(`Slide ${slideIndex}, ${type} ${index + 1}: Missing alt text.`);
-              const pos = extractPosition(item);
               issues.push({
                 slideNumber: slideIndex,
                 issueText: `Slide ${slideIndex}, ${type} ${index + 1}: Missing alt text.`,
-                position: pos
               });
           }
       });
@@ -328,11 +313,9 @@ async function checkRawURLLinks(filePath: string): Promise<Issue[]> {
           if (text && target) {
             if (text === target || text.startsWith("http")) {
               console.warn(`Slide ${slideIndex}: Link text is a raw URL -> "${text}". Use descriptive text instead.`);
-              const pos = extractPosition(shape);
               issues.push({
                 slideNumber: slideIndex,
                 issueText: `Slide ${slideIndex}: Link text is a raw URL -> "${text}". Use descriptive text instead.`,
-                position: pos
               });
             }
           }
@@ -343,34 +326,83 @@ async function checkRawURLLinks(filePath: string): Promise<Issue[]> {
   return issues;
 }
 
+export async function runPPTXTests(filePath: string): Promise<Issue[]>{
+  let issues: Issue[] = await checkAltTextAllVisuals(filePath);
+  issues.push(...await checkSlideTitle(filePath));
+  issues.push(...await checkContrast(filePath));
+  issues.push(...await checkPowerPointTableHeaders(filePath));
+  issues.push(...await checkRawURLLinks(filePath));
+  return issues;
+}
 
+export async function generatePPTXAccessibilityReport(filePath: string, issues: Issue[]): Promise<void> {
+  const fileName = path.basename(filePath);
+  const passed = issues.length === 0;
 
+  const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <title>Accessibility Report for ${fileName}</title>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 2em; line-height: 1.6; }
+        h1 { border-bottom: 2px solid #333; }
+        .status { font-size: 1.2em; font-weight: bold; margin: 1em 0; }
+        .pass { color: green; }
+        .fail { color: red; }
+        .issue { border: 1px solid #ccc; border-left: 4px solid #e74c3c; padding: 1em; margin: 1em 0; }
+        .slide-num { font-weight: bold; }
+        footer { margin-top: 3em; font-style: italic; }
+      </style>
+    </head>
+    <body>
+      <h1>Accessibility Compliance Report for ${fileName}</h1>
 
-export async function testPPTXDoc(filePath: string){
-  let issues = await checkAltTextAllVisuals(filePath);
-  for (const issue of issues) {
-    console.log(issue);
-    await PPTComments.addComment(filePath, issue.slideNumber, {
-      author: "thor",
-      text: issue.issueText,
-      x: 0,
-      y: 0,
-      date: '2024-01-01T15:00:00Z'
-    });
-    return;
+      <div class="status ${passed ? 'pass' : 'fail'}">
+        ${passed ? '✅ Passed: No accessibility issues found.' : '❌ Failed: Accessibility issues detected.'}
+      </div>
+
+      ${passed
+        ? ''
+        : issues.map(issue => `
+            <div class="issue">
+              <div class="slide-num">Slide ${issue.slideNumber}</div>
+              <div class="issue-text">${issue.issueText}</div>
+            </div>
+          `).join('')
+      }
+
+      <footer>Report generated at ${new Date().toLocaleString()}</footer>
+    </body>
+    </html>
+  `;
+
+  const outputPath = path.join(path.dirname(filePath), `${fileName}-accessibility-report.html`);
+  fs.writeFileSync(outputPath, html, 'utf-8');
+}
+
+export async function testPPTXAccessiblity(filePath: string, fileSource: string): Promise<{filePath: string, accessibilityStatus: AccessibilityStatus}> {
+  if (fileSource === "GCDOCS") {
+    const adapter = new GCDocsAdapter();
+    filePath = await adapter.downloadDocumentContent(filePath);
   }
+  if (!fs.existsSync(filePath)) {
+    throw new Error(`Input file does not exist: ${filePath}`);
+  }
+
+  const issues: Issue[] = await runPPTXTests(filePath);
+  await generatePPTXAccessibilityReport(filePath, issues);
+  const accessibilityStatus = issues.length === 0 ? AccessibilityStatus.Accessible : AccessibilityStatus.NotAccessible;
+  await MSOfficeMetadata.changeIsAccessibleProperty(filePath, issues.length === 0);
+
+  return {filePath, accessibilityStatus};
+} 
+
+async function main() {
+  console.log(`before: ${await MSOfficeMetadata.isAccessible("/home/tharindu/Downloads/Versioning.pptx", "SYSTEM")}`);
+  console.log(await testPPTXAccessiblity("/home/tharindu/Downloads/Versioning.pptx", "SYSTEM"));
+  console.log(`after: ${await MSOfficeMetadata.isAccessible("/home/tharindu/Downloads/Versioning.pptx", "SYSTEM")}`);
 }
 
-async function runPPTXTests() {
-  await testPPTXDoc("/home/tharindu/Downloads/Versioning.pptx");
-  // await checkAltText("/home/tharindu/Downloads/Versioning.pptx");
-  // console.log(await checkSlideTitle("/home/tharindu/Downloads/Versioning.pptx"));
-  // console.log(await checkContrast("/home/tharindu/Downloads/Versioning.pptx"));
-  // // await checkReadingOrder("/home/tharindu/Downloads/Versioning.pptx");
-  // console.log(await checkEmptySlides("/home/tharindu/Downloads/Versioning.pptx"));
-  // console.log(await checkPowerPointTableHeaders("/home/tharindu/Downloads/Versioning.pptx"));
-  // console.log(await checkAltTextAllVisuals("/home/tharindu/Downloads/Versioning.pptx"));
-  // console.log(await checkRawURLLinks("/home/tharindu/Downloads/Versioning.pptx"));
-}
-
-runPPTXTests();
+// main()

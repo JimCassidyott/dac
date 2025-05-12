@@ -3,13 +3,15 @@ import * as pathModule from "path";
 import { SystemAdapter } from './components/systemAdaptor';
 import { IFolderContents } from "./Interfaces/IFolderContents";
 import { IFile } from "./Interfaces/IFile";
-import { changeIsAccessibleProperty, isAccessible, testAccessiblity } from "./components/MSWordAccessibilityChecker";
+import { testAccessiblity } from "./components/MSWordAccessibilityChecker";
 import ProgressBar = require('electron-progressbar');
 import { GCDocsAdapter } from './components/GCDocsAdaptor';
-import { isWordDOC, isPDFDoc } from './components/helpers';
+import { isWordDOC, isPDFDoc, isPPTXDoc } from './components/helpers';
 import * as PDFProperties from './components/PDFProperties';
 import * as fs from 'fs';
 import { AccessibilityStatus } from "./components/helpers";
+import { MSOfficeMetadata } from './components/MSOfficeMetadata';
+import { testPPTXAccessiblity } from './components/pptx';
 
 let mainWindow: Electron.BrowserWindow = null;
 function createWindow() {
@@ -57,8 +59,8 @@ function createWindow() {
           {
             label: 'Change accessibility status',
             click: async () => {
-              await changeIsAccessibleProperty(arg.path, !await isAccessible(arg.path, fileSource));
-              let nAccessibility = await isAccessible(arg.path, fileSource);
+              await MSOfficeMetadata.changeIsAccessibleProperty(arg.path, !(await MSOfficeMetadata.isAccessible(arg.path, fileSource) === AccessibilityStatus.Accessible));
+              let nAccessibility = await MSOfficeMetadata.isAccessible(arg.path, fileSource);
               mainWindow.webContents.send('context-menu-action', {action: 'change-accessibility-status', path: arg.path, accStatus: nAccessibility.toString()});
             }
           }
@@ -246,11 +248,15 @@ async function markFilesAccessibility(contents: IFile[], path: string): Promise<
   for (const file of contents) {     
     let adjustedPath = path == './' ? (path + file.name) : (path + "/" + file.name);
     if(await isWordDOC(adjustedPath, fileSource)) {
-      file.isAccessible = await isAccessible(file.path, fileSource);
+      file.isAccessible = await MSOfficeMetadata.isAccessible(file.path, fileSource);
       markedFiles.push(file);
     }
     else if (await isPDFDoc(adjustedPath)) {
       file.isAccessible = await PDFProperties.isAccessible(file.path, fileSource);
+      markedFiles.push(file);
+    }
+    else if (await isPPTXDoc(adjustedPath)) {
+      file.isAccessible = await MSOfficeMetadata.isAccessible(file.path, fileSource);
       markedFiles.push(file);
     }
     else {
@@ -299,7 +305,7 @@ async function handleGetReport(path: string) {
       documents.map(async (filePath) => { // Create IFile objects with name, path, and fileCount initialized to 0
         let accessibilityStatus = AccessibilityStatus.Untested;
         if (await isWordDOC(filePath, fileSource)) {   
-          accessibilityStatus = await isAccessible(filePath, fileSource);   
+          accessibilityStatus = await MSOfficeMetadata.isAccessible(filePath, fileSource);   
         }
         else if (await isPDFDoc(filePath)) {   
           accessibilityStatus = await PDFProperties.isAccessible(filePath, fileSource);  
@@ -332,14 +338,19 @@ async function testFile(path: string): Promise<AccessibilityStatus> {
     let fIsAccessible: AccessibilityStatus = null;
     if (await isWordDOC(path, fileSource)) {
       const {filePath, fileIsAccessible} = await testAccessiblity(path, fileSource); 
-      await changeIsAccessibleProperty(filePath, fileIsAccessible === AccessibilityStatus.Accessible);
+      await MSOfficeMetadata.changeIsAccessibleProperty(filePath, fileIsAccessible === AccessibilityStatus.Accessible);
       fPath = filePath;
       fIsAccessible = fileIsAccessible;
     }
     else if (await isPDFDoc(path)) {
-      const {filePath, fileIsAccessible} = await PDFProperties.testPDFAccessibility(path, fileSource); // temp dummy test function
+      const {filePath, fileIsAccessible} = await PDFProperties.testPDFAccessibility(path, fileSource); 
       fPath = filePath;
       fIsAccessible = fileIsAccessible;
+    }
+    else if (await isPPTXDoc(path)) {
+      const {filePath, accessibilityStatus} = await testPPTXAccessiblity(path, fileSource);
+      fPath = filePath;
+      fIsAccessible = accessibilityStatus;
     }
 
     if (fileSource === "GCDOCS") {
