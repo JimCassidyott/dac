@@ -382,7 +382,7 @@ export async function generatePPTXAccessibilityReport(filePath: string, issues: 
   fs.writeFileSync(outputPath, html, 'utf-8');
 }
 
-async function testPPTXAccessiblity(filePath: string, fileSource: string): Promise<AccessibilityStatus> {
+export async function testPPTXAccessiblity(filePath: string, fileSource: string): Promise<{filePath: string, accessibilityStatus: AccessibilityStatus}> {
   if (fileSource === "GCDOCS") {
     const adapter = new GCDocsAdapter();
     filePath = await adapter.downloadDocumentContent(filePath);
@@ -395,7 +395,8 @@ async function testPPTXAccessiblity(filePath: string, fileSource: string): Promi
   await generatePPTXAccessibilityReport(filePath, issues);
   const accessibilityStatus = issues.length === 0 ? AccessibilityStatus.Accessible : AccessibilityStatus.NotAccessible;
   await MSOfficeMetadata.changeIsAccessibleProperty(filePath, issues.length === 0);
-  return accessibilityStatus
+
+  return {filePath, accessibilityStatus};
 } 
 
 async function main() {
