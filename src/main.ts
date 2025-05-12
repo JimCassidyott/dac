@@ -395,6 +395,11 @@ async function testFolder(path: string, progressBar: ProgressBar, fileTypes: str
     let pdfDocuments = await adaptor.listPDFFiles(path);
     documents.push(...pdfDocuments);
   }
+
+  if (fileTypes.includes("powerpoint")) {
+    let pdfDocuments = await adaptor.listPPTXFiles(path);
+    documents.push(...pdfDocuments);
+  }
   
   testResults.numfiles = documents.length;
   

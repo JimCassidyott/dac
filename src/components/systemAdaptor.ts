@@ -172,11 +172,24 @@ export class SystemAdapter implements IFileSystem {
     * Converts the file paths to full file paths.
     *
     * @param {string} dirPath - The path to the directory.
-    * @returns {Promise<string[]>} - A list of .docx file paths.
+    * @returns {Promise<string[]>} - A list of .pdf file paths.
     */
     public listPDFFiles(dirPath: string): Promise<string[]> {
       const { files } = this.listFilesAndDirectories(dirPath);
       return Promise.resolve(files
           .filter(file => path.extname(file) === '.pdf'));
+    }
+
+    /**
+    * Lists all .pptx files in the given directory and its subdirectories.
+    * Converts the file paths to full file paths.
+    *
+    * @param {string} dirPath - The path to the directory.
+    * @returns {Promise<string[]>} - A list of .pptx file paths.
+    */
+    public listPPTXFiles(dirPath: string): Promise<string[]> {
+      const { files } = this.listFilesAndDirectories(dirPath);
+      return Promise.resolve(files
+          .filter(file => path.extname(file) === '.pptx'));
     }
 }

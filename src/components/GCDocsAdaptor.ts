@@ -8,8 +8,7 @@ import { IFolderContents } from '../Interfaces/IFolderContents';
 import FormData = require('form-data');
 import * as fsSync from 'fs';
 import { request } from 'undici';
-import { AccessibilityStatus } from "../components/helpers";
-import { isPDFDoc, isWordDOC } from './helpers';
+import { AccessibilityStatus, isPDFDoc, isWordDOC, isPPTXDoc } from './helpers';
 
 /**
  * An implementation of the IFileSystem interface for interacting with theSystem file system.
@@ -207,6 +206,18 @@ import { isPDFDoc, isWordDOC } from './helpers';
         const pdfFiles = results.filter(result => result.isPDFDoc).map(result => result.file);
         return pdfFiles; 
     }
+
+    public async listPPTXFiles(dirPath: string): Promise<string[]> {
+      let { files } = await this.listFilesAndDirectories(dirPath);
+      const results = await Promise.all(
+          files.map(async (file) => ({
+              file,
+              isPPTXDoc: await isPPTXDoc(file)
+          }))
+      );
+      const pptxFiles = results.filter(result => result.isPPTXDoc).map(result => result.file);
+      return pptxFiles; 
+  }
 
     /**
      * Download the document at the given node and save it at /src/temp/GCdocsDownloadedDocuments/
