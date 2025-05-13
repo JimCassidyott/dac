@@ -66,6 +66,7 @@ export async function isAccessible(filePath: string, fileSource: string): Promis
     }
   } catch (error) {
     console.error('Error parsing metadata:', error);
+    // if encryption error call hash function here.
     return AccessibilityStatus.Untested;
   }
 }

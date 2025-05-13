@@ -239,10 +239,6 @@ async function getFileSystemAdapter(){
   }
 }
 
-function filterDocxFiles(contents: IFile[]): IFile[] {
-  return contents.filter(file => file.name.toLowerCase().endsWith('.docx'));
-}
-
 async function markFilesAccessibility(contents: IFile[], path: string): Promise<IFile[]> {
   const markedFiles: IFile[] = [];
   for (const file of contents) {     

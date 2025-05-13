@@ -56,16 +56,16 @@ export async function isPPTXDoc(filePath: string): Promise<boolean> {
 
 export function getHTMLReportPath(fileName: string): string {
   try {
-    if (path.extname(fileName) === '.pdf') { return path.join(createFolderIfNotxist('PDFTestResults'), fileName); }
-    if (path.extname(fileName) === '.pptx') { return path.join(createFolderIfNotxist('PPTXTestResults'), fileName); }
+    const __homedir = homedir();
+    const basePath = path.join(__homedir, 'Downloads', 'DAC');
+    if (path.extname(fileName) === '.pdf') { return path.join(createFolderIfNotxist(path.join(basePath, 'PDFTestResults')), fileName); }
+    if (path.extname(fileName) === '.pptx') { return path.join(createFolderIfNotxist(path.join(basePath, 'PPTXTestResults')), fileName); }
   }
   catch (error) { throw error; }
 }
 
-function createFolderIfNotxist(folderPath: string): string {
+export function createFolderIfNotxist(fullPath: string): string {
   try {
-    const __homedir = homedir();
-    const fullPath = path.join(__homedir, 'Downloads', 'DAC', folderPath);
     if (!fs.existsSync(fullPath)) {
       fs.mkdirSync(fullPath, {recursive: true});
     }

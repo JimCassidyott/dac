@@ -1,7 +1,8 @@
 {
-  "name": "Document Accessibility Checker",
+  "name": "DAC",
   "version": "1.0.0",
-  "description": "An Application for testing Documents for Accessibility Compliance",
+  "description": "Document Accessibility Checker - An Application for testing Documents for Accessibility Compliance",
+  "main": "dist/main.js",
   "scripts": {
     "build": "npx tsc",
     "watch": "npx tsc -w",
