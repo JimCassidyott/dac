@@ -1,7 +1,6 @@
 import * as fs from 'fs';
 import * as JSZip from 'jszip';
 import { DOMParser } from 'xmldom';
-import { XMLSerializer } from 'xmldom';
 import { Heading } from './Headings';
 
 interface Header {

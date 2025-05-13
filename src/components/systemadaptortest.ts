@@ -1,7 +1,5 @@
 import { MSOfficeMetadata } from './MSOfficeMetadata';
 import { SystemAdapter } from "./systemAdaptor";
-import { AccessibilityStatus } from "./helpers";
-import * as fs from 'fs';
 
 // Get the file name from the command-line arguments
 // const fileName = process.argv[2];

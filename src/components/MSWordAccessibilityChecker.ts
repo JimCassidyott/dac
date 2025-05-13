@@ -1,4 +1,3 @@
-const AdmZip = require('adm-zip'); // Using require here is important. If you use import, it will throw an error.
 import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as pa11y from 'pa11y';
@@ -17,19 +16,6 @@ const errorCodesToIgnore = [
 const pa11yOptions = {
     standard: 'WCAG2AAA', // You can change this to other standards like 'Section508' or 'WCAG21AA'
 };
-
-/**
- * Creates a new collection of custom properties with one boolean property called isAccessible set to false.
- * Returns a properly formatted XML string representing the custom properties for a Word document.
- *
- * @returns { string } An XML string representing a collection of custom properties with isAccessible set to false.
- */
-function createCustomPropertyCollectionWithIsAccessibleProperty(): string {
-    const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/custom-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"><property fmtid="{D5CDD505-2E9C-101B-9397-08002B2CF9AE}" pid="2" name="isAccessible"><vt:bool>0</vt:bool></property></Properties>`;
-
-    return xml;
-}
 
 /**
  * Runs a Pandoc command synchronously. Throws an exception if the command

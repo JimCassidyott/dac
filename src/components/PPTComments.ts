@@ -1,7 +1,6 @@
 import * as JSZip from 'jszip';
 import { DOMParser, XMLSerializer } from 'xmldom';
 import * as fs from 'fs';
-import { join } from 'path';
 
 export interface PowerPointComment {
     author: string;

@@ -6,7 +6,6 @@
 import * as JSZip from 'jszip';
 import { DOMParser, XMLSerializer } from 'xmldom';
 import * as fs from 'fs/promises';
-import { parseString, Builder } from 'xml2js';
 
 /**
  * A class that provides functionality for managing comments in DOCX files.
