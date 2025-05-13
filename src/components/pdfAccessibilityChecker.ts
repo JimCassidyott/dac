@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import { PDFDocument } from 'pdf-lib';
 import * as pdfjsLib from 'pdfjs-dist';
+import { getHTMLReportPath } from './helpers';
 
 // Types for pdf.js annotations and links
 interface PDFAnnotation {
@@ -1599,8 +1600,9 @@ export class PdfAccessibilityChecker {
           // Save the report to a file
           // const reportPath = pdfPath.replace(/\.pdf$/i, '-accessibility-report.json');
           // AccessibilityReportGenerator.saveReport(report, reportPath);
+          const htmlReportPath = getHTMLReportPath(filename);
           AccessibilityReportGenerator.saveHTMLReport(AccessibilityReportGenerator.generateHtml(report), 
-            pdfPath.replace(/\.pdf$/i, '-accessibility-report.html'));
+            htmlReportPath.replace(/\.pdf$/i, '-accessibility-report.html'));
           
           return report;
       } catch (error) {

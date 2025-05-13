@@ -1,5 +1,7 @@
 import * as path from 'path';
 import { fromFile } from 'file-type';
+import * as fs from 'fs';
+import { homedir } from 'os';
 
 /**
  * Asynchronously checks if a file is a Word document (.docx) by verifying its file extension and MIME type.
@@ -50,6 +52,28 @@ export async function isPPTXDoc(filePath: string): Promise<boolean> {
     return false;
   }
   return true;
+}
+
+export function getHTMLReportPath(fileName: string): string {
+  try {
+    if (path.extname(fileName) === '.pdf') { return path.join(createFolderIfNotxist('PDFTestResults'), fileName); }
+    if (path.extname(fileName) === '.pptx') { return path.join(createFolderIfNotxist('PPTXTestResults'), fileName); }
+  }
+  catch (error) { throw error; }
+}
+
+function createFolderIfNotxist(folderPath: string): string {
+  try {
+    const __homedir = homedir();
+    const fullPath = path.join(__homedir, 'Downloads', 'DAC', folderPath);
+    if (!fs.existsSync(fullPath)) {
+      fs.mkdirSync(fullPath, {recursive: true});
+    }
+    return fullPath;
+  }
+  catch (error) {
+    throw new Error(`Error at createFolderIfNotxist: ${error}`)
+  }
 }
 
 export enum AccessibilityStatus {

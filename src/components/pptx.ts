@@ -3,7 +3,7 @@ import * as unzipper from 'unzipper';
 import { parseStringPromise } from "xml2js";
 import { hex as contrastRatio } from "wcag-contrast";
 import * as path from 'path';
-import { AccessibilityStatus } from './helpers';
+import { AccessibilityStatus, getHTMLReportPath } from './helpers';
 import { GCDocsAdapter } from './GCDocsAdaptor';
 import { MSOfficeMetadata } from './MSOfficeMetadata';
 
@@ -335,7 +335,7 @@ export async function runPPTXTests(filePath: string): Promise<Issue[]>{
   return issues;
 }
 
-export async function generatePPTXAccessibilityReport(filePath: string, issues: Issue[]): Promise<void> {
+export function generatePPTXAccessibilityReport(filePath: string, issues: Issue[]): void {
   const fileName = path.basename(filePath);
   const passed = issues.length === 0;
 
@@ -378,8 +378,9 @@ export async function generatePPTXAccessibilityReport(filePath: string, issues: 
     </html>
   `;
 
-  const outputPath = path.join(path.dirname(filePath), `${fileName}-accessibility-report.html`);
+  const outputPath = getHTMLReportPath(fileName).replace(/\.pptx$/i, '-accessibility-report.html');
   fs.writeFileSync(outputPath, html, 'utf-8');
+  console.log(`file saved to: ${outputPath}`);
 }
 
 export async function testPPTXAccessiblity(filePath: string, fileSource: string): Promise<{filePath: string, accessibilityStatus: AccessibilityStatus}> {
@@ -392,7 +393,7 @@ export async function testPPTXAccessiblity(filePath: string, fileSource: string)
   }
 
   const issues: Issue[] = await runPPTXTests(filePath);
-  await generatePPTXAccessibilityReport(filePath, issues);
+  generatePPTXAccessibilityReport(filePath, issues);
   const accessibilityStatus = issues.length === 0 ? AccessibilityStatus.Accessible : AccessibilityStatus.NotAccessible;
   await MSOfficeMetadata.changeIsAccessibleProperty(filePath, issues.length === 0);
 
@@ -400,9 +401,11 @@ export async function testPPTXAccessiblity(filePath: string, fileSource: string)
 } 
 
 async function main() {
-  console.log(`before: ${await MSOfficeMetadata.isAccessible("/home/tharindu/Downloads/Versioning.pptx", "SYSTEM")}`);
-  console.log(await testPPTXAccessiblity("/home/tharindu/Downloads/Versioning.pptx", "SYSTEM"));
-  console.log(`after: ${await MSOfficeMetadata.isAccessible("/home/tharindu/Downloads/Versioning.pptx", "SYSTEM")}`);
+  console.log(`before: ${await MSOfficeMetadata.isAccessible("C:\\Users\\hatharasinghageth\\Documents\\Test\\dac\\demo_files\\untested\\Versioning.pptx", "SYSTEM")}`);
+  console.log(await testPPTXAccessiblity("C:\\Users\\hatharasinghageth\\Documents\\Test\\dac\\demo_files\\untested\\Versioning.pptx", "SYSTEM"));
+  console.log(`after: ${await MSOfficeMetadata.isAccessible("C:\\Users\\hatharasinghageth\\Documents\\Test\\dac\\demo_files\\untested\\Versioning.pptx", "SYSTEM")}`);
 }
 
-// main()
+if (require.main === module) {
+  main();
+}
