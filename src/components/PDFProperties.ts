@@ -5,6 +5,7 @@ import { AccessibilityStatus } from './helpers';
 import { getBasicUserInfo } from './user';
 import { GCDocsAdapter } from './GCDocsAdaptor';
 import { PdfAccessibilityChecker, AccessibilityReport } from './pdfAccessibilityChecker';
+import { getPDFStatus, updatePDFStatus } from './PDFDataStore';
 import * as path from 'path';
 
 const PDFLIB_EncryptedPDFError_MESSAGE = "Input document to `PDFDocument.load` is encrypted. You can use `PDFDocument.load(..., { ignoreEncryption: true })` if you wish to load the document anyways.";
@@ -67,6 +68,9 @@ export async function isAccessible(filePath: string, fileSource: string): Promis
   } catch (error) {
     console.error('Error parsing metadata:', error);
     // if encryption error call hash function here.
+    if (error.message.includes(PDFLIB_EncryptedPDFError_MESSAGE)) {
+      return getPDFStatus(filePath);
+    }
     return AccessibilityStatus.Untested;
   }
 }
@@ -113,6 +117,7 @@ export async function updateIsAccessibleProperty(
     return accessibilityStatus;
   } catch (error) {
     if (error.message.includes(PDFLIB_EncryptedPDFError_MESSAGE)) {
+      updatePDFStatus(filePath,accessibilityStatus);
       return accessibilityStatus;
     }
     console.error('Error updating isAccessible property:', error);
