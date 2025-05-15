@@ -1,7 +1,7 @@
 import * as fs from 'fs/promises';
 import { isPDFDoc } from './helpers';
 import { PDFDocument } from 'pdf-lib';
-import { AccessibilityStatus } from './helpers';
+import { AccessibilityStatus, windowsToUnixPath } from './helpers';
 import { getBasicUserInfo } from './user';
 import { GCDocsAdapter } from './GCDocsAdaptor';
 import { PdfAccessibilityChecker, AccessibilityReport } from './pdfAccessibilityChecker';
@@ -69,7 +69,7 @@ export async function isAccessible(filePath: string, fileSource: string): Promis
     console.error('Error parsing metadata:', error);
     // if encryption error call hash function here.
     if (error.message.includes(PDFLIB_EncryptedPDFError_MESSAGE)) {
-      return getPDFStatus(filePath);
+      return getPDFStatus(windowsToUnixPath(filePath));
     }
     return AccessibilityStatus.Untested;
   }
@@ -117,7 +117,7 @@ export async function updateIsAccessibleProperty(
     return accessibilityStatus;
   } catch (error) {
     if (error.message.includes(PDFLIB_EncryptedPDFError_MESSAGE)) {
-      updatePDFStatus(filePath,accessibilityStatus);
+      updatePDFStatus(windowsToUnixPath(filePath),accessibilityStatus);
       return accessibilityStatus;
     }
     console.error('Error updating isAccessible property:', error);

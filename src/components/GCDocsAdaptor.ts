@@ -6,7 +6,14 @@ import { IFolderContents } from '../Interfaces/IFolderContents';
 import FormData = require('form-data');
 import * as fsSync from 'fs';
 import { request } from 'undici';
-import { AccessibilityStatus, isPDFDoc, isWordDOC, isPPTXDoc } from './helpers';
+import { AccessibilityStatus, isPDFDoc, isWordDOC, isPPTXDoc, createFolderIfNotxist } from './helpers';
+import { app } from 'electron';
+import { join } from 'path';
+import { SystemAdapter } from './systemAdaptor';
+import { existsSync, unlink } from 'fs';
+
+const userDataPath = app.getPath('userData');
+const TMP_GCDOCS_FILE_PATH = join(userDataPath, 'temp', 'GCdocsDownloadedDocuments');
 
 /**
  * An implementation of the IFileSystem interface for interacting with theSystem file system.
@@ -237,8 +244,10 @@ import { AccessibilityStatus, isPDFDoc, isWordDOC, isPPTXDoc } from './helpers';
             }
             let buffer = await response.arrayBuffer();
             let fName = await response.headers.get('content-disposition').match(/filename="?([^"]+)"?/)?.[1];
-            await fs.writeFile(`./temp/GCdocsDownloadedDocuments/${fName}`,Buffer.from(buffer));
-            return `./temp/GCdocsDownloadedDocuments/${fName}`;
+            createFolderIfNotxist(TMP_GCDOCS_FILE_PATH);
+            let fPath = join(TMP_GCDOCS_FILE_PATH, fName);
+            await fs.writeFile(fPath, Buffer.from(buffer));
+            return fPath;
         }
         catch(error) {
             throw error;
@@ -296,6 +305,18 @@ import { AccessibilityStatus, isPDFDoc, isWordDOC, isPPTXDoc } from './helpers';
             // throw error;
             console.error(error);
             return false;
+        }
+    }
+
+    public async cleanUp() {
+        if (!existsSync(TMP_GCDOCS_FILE_PATH)) { return; }
+        let systemAdapter = new SystemAdapter();
+        let files = await systemAdapter.getFiles(TMP_GCDOCS_FILE_PATH);
+        for (const file of files) {
+            unlink(file.path, (err) => {
+                if (err) throw (err);
+                console.log(`Successfully deleted file: ${file.path}`);
+            });
         }
     }
 }

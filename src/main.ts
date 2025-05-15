@@ -216,7 +216,10 @@ app.whenReady().then(() => {
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
-app.on("window-all-closed", () => {
+app.on("window-all-closed", async () => {
+  // clean up temp files downloaded from GCdocs
+  const gcdocsAdapter = new GCDocsAdapter();
+  await gcdocsAdapter.cleanUp(); 
   if (process.platform !== "darwin") {
     app.quit();
   }

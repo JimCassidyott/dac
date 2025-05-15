@@ -83,3 +83,6 @@ export enum AccessibilityStatus {
   NotApplicable = "Not Applicable",
   ManualTestingRequired = "Manual Testing Required" //pdf specific
 }
+
+export const windowsToUnixPath = (winPath: string): string =>
+  winPath.replace(/\\g/, '/');
