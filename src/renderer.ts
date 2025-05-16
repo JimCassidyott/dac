@@ -92,18 +92,17 @@ async function toggleFolder(icon: any) {
   icon.classList.toggle("fa-folder");
   icon.classList.toggle("fa-folder-open");
   let nestedList = icon.nextElementSibling;
-  let content = await window.electronAPI.getFolderContent(icon.dataset.currPath);  
+  nestedList.classList.toggle("active");
   displayLoading(nestedList);
+  let content = await window.electronAPI.getFolderContent(icon.dataset.currPath);  
   nestedList.innerHTML = generateFileTree(content.files, content.name);
   nestedList.innerHTML += generateFolderTree(content.folders, content.name);
-  if (nestedList) {
-    nestedList.classList.toggle("active");
-  }
+
 }
 
 async function ShowFolderContents() {
-  let content = await window.electronAPI.getFolderContent("/");
   displayLoading(document.getElementById("file-explorer"));
+  let content = await window.electronAPI.getFolderContent("/");
   let html = 
     `
     <ul>
@@ -193,6 +192,8 @@ window.electronAPI.receive('top-menu-action', (data) => {
     document.getElementById('file-explorer').innerHTML = null;
     rightPanel.innerHTML = `<p class="text-danger">Something went wrong while attempting to connect to GCdocs please make youre you entered a valid URL.</p>`
   }
+  
+  if (data.action == "open-gcdocs-folder") { displayLoading(document.getElementById("file-explorer")); }
 });
 
 function receiveChangeAccessibilityStatus(data: any) {

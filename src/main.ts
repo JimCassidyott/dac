@@ -181,6 +181,9 @@ function createWindow() {
   mainWindow.webContents.openDevTools();
 
   ipcMain.on('url-submitted', async (event, url) => {
+    mainWindow.webContents.send("top-menu-action", {
+      action: 'open-gcdocs-folder',
+    });
     try{
       let nodeID = url.match(/objId=(\d+)/)[1];
       let folderContent = await handleGetContent(null, nodeID);
