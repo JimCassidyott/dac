@@ -93,6 +93,7 @@ async function toggleFolder(icon: any) {
   icon.classList.toggle("fa-folder-open");
   let nestedList = icon.nextElementSibling;
   let content = await window.electronAPI.getFolderContent(icon.dataset.currPath);  
+  displayLoading(nestedList);
   nestedList.innerHTML = generateFileTree(content.files, content.name);
   nestedList.innerHTML += generateFolderTree(content.folders, content.name);
   if (nestedList) {
@@ -101,7 +102,8 @@ async function toggleFolder(icon: any) {
 }
 
 async function ShowFolderContents() {
-  let content = await window.electronAPI.getFolderContent("/");  
+  let content = await window.electronAPI.getFolderContent("/");
+  displayLoading(document.getElementById("file-explorer"));
   let html = 
     `
     <ul>
@@ -420,4 +422,17 @@ function recieveGetTestingFileType(data: any) {
     window.electron.ipcRenderer.send('start-folder-accessibility-test', { path: data.path, selectedTypes });
     popup.remove();
   });
+}
+
+// window.electronAPI.receive("loading-event", (data) => {
+//   if (data.action === "display-loading") { recieveDisplayLoading(); }
+// });
+
+function displayLoading(element: HTMLElement) {
+  element.innerHTML = `
+  <div class="d-flex align-items-center">
+    <div class="spinner-border text-primary mr-2" role="status" aria-hidden="true"></div>
+    <p class="mb-0">Loading...</p>
+  </div>
+  `; 
 }

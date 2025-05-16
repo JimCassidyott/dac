@@ -497,4 +497,4 @@ ipcMain.on('start-folder-accessibility-test', async (event, data: {path: string,
       results: res.results
     });
   }
-})
+});
