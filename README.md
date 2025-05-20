@@ -1,56 +1,54 @@
-> [!CAUTION]
-> This template is **deprecated**. To get started with an Electron + TypeScript project, we highly recommend starting with [Electron Forge](https://www.electronforge.io/)'s official TypeScript templates.
+# Document Accessibility Checker (DAC)
 
-# electron-quick-start-typescript
+**The Document Accessibility Checker (DAC) is an application designed to perform bulk testing of documents for accessibility compliance.**
 
-**Clone and run for a quick way to see Electron in action.**
+## Supported Document Types
+DAC currently supports accessibility testing for the following document types:
 
-This is a [TypeScript](https://www.typescriptlang.org) port of the [Electron Quick Start repo](https://github.com/electron/electron-quick-start) -- a minimal Electron application based on the [Quick Start Guide](http://electron.atom.io/docs/tutorial/quick-start) within the Electron documentation.
+- Microsoft Word Documents (.docx)
+- Microsoft PowerPoint Documents (.pptx) 
+- PDF Documents (.pdf)
 
-**Use this app along with the [Electron API Demos](http://electron.atom.io/#get-started) app for API code examples to help you get started.**
+*Note: The test suite for PowerPoint and PDF documents is currently limited. Future versions of DAC will include more comprehensive tests for these formats to ensure more thorough accessibility evaluations.*
 
-A basic Electron application needs just these files:
+## Features
+- Browse folders on your computer or in GCDocs using DAC’s built-in file explorer.
+- Instantly view a document’s accessibility status via the status icon next to each file.
+- Test individual documents for accessibility compliance.
+- Perform bulk testing on all documents within a folder and its subfolders.
+- Generate accessibility reports summarizing how many documents are accessible vs. inaccessible.
 
-- `package.json` - Points to the app's main file and lists its details and dependencies.
-- `main.ts` - Starts the app and creates a browser window to render HTML. This is the app's **main process**.
-- `index.html` - A web page to render. This is the app's **renderer process**.
 
-You can learn more about each of these components within the [Quick Start Guide](http://electron.atom.io/docs/tutorial/quick-start).
+> ⚠️ **Important:** GCDocs support is currently limited. DAC can only connect to a development environment of GCDocs. This feature is not available to all users. Please contact the DAC development team if you would like more information.
 
-## To Use
 
-To clone and run this repository you'll need [Git](https://git-scm.com) and [Node.js](https://nodejs.org/en/download/) (which comes with [npm](http://npmjs.com)) installed on your computer. From your command line:
+## Installation Instructions
+1. **Install Pandoc** (required for DAC functionality):
+    - Visit the [Pandoc Installer Page](https://pandoc.org/installing.html).
+    - Download and run the latest installer.
 
-```bash
-# Clone this repository
-git clone https://github.com/electron/electron-quick-start-typescript
-# Go into the repository
-cd electron-quick-start-typescript
-# Install dependencies
-npm install
-# Run the app
-npm start
-```
+2. **Install DAC**
+    - Go to the latest release on the [Releases page](https://github.com/JimCassidyott/dac/releases/).
+    - Download the DAC-(version).Setup.zip file.
+    - Right-click the .zip file and select Extract All.
+    - Open the extracted DAC-(version).Setup folder.
+    - Run the .exe setup file to install DAC
 
-Note: If you're using Linux Bash for Windows, [see this guide](https://www.howtogeek.com/261575/how-to-run-graphical-linux-desktop-applications-from-windows-10s-bash-shell/) or use `node` from the command prompt.
+    **If Microsoft Defender blocks the installer, try running it via Command Prompt.**
 
-## Re-compile automatically
+3. **Launch DAC**
+    - The application will be installed at:
+`C:\Users\<your_username>\AppData\Local\DAC`
+    - To create a desktop shortcut:
+        - Right-click DAC.exe and select Create shortcut.
+        - Move the shortcut to your desktop.
 
-To recompile automatically and to allow using [electron-reload](https://github.com/yan-foto/electron-reload), run this in a separate terminal:
+- Next, Go to the latest release in this repository [Releases](https://github.com/JimCassidyott/dac/releases/)
+- Download the `DAC-(version).Setup.zip` file.
+- Unzip the `DAC-(version).Setup.zip` file. (Right click on .zip file and select Extract all)
+- Open the unzipped `DAC-(version).Setup` folder.
+- Run the (.exe) setup file to install the Document Accessibility Checker.
+- _If Microsoft Defender prevents the DAC installer from running, run the DAC installer using Command Prompt._
+- The DAC program will be installed at `C:\Users\<your_username>\AppData\Local\DAC`
+- To create a desktop shortcut right click on the DAC program file named DAC.exe and select `Create shortcut`. Then copy over the shortcut to your desktop. 
 
-```bash
-npm run watch
-```
-
-## Resources for Learning Electron
-
-- [electronjs.org/docs](https://electronjs.org/docs) - all of Electron's documentation
-- [Electron Fiddle](https://electronjs.org/fiddle) - create, play, and share small Electron experiments
-- [electronjs.org/community#boilerplates](https://electronjs.org/community#boilerplates) - sample starter apps created by the community
-- [electron/electron-quick-start](https://github.com/electron/electron-quick-start) - a very basic starter Electron app
-- [electron/simple-samples](https://github.com/electron/simple-samples) - small applications with ideas for taking them further
-- [hokein/electron-sample-apps](https://github.com/hokein/electron-sample-apps) - small demo apps for the various Electron APIs
-
-## License
-
-[CC0 1.0 (Public Domain)](LICENSE.md)
