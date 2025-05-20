@@ -6,12 +6,14 @@ import { IFile } from "./Interfaces/IFile";
 import { testAccessiblity } from "./components/MSWordAccessibilityChecker";
 import ProgressBar = require('electron-progressbar');
 import { GCDocsAdapter } from './components/GCDocsAdaptor';
-import { isWordDOC, isPDFDoc, isPPTXDoc } from './components/helpers';
+import { isWordDOC, isPDFDoc, isPPTXDoc, AccessibilityStatus, getHTMLReportPath } from './components/helpers';
 import * as PDFProperties from './components/PDFProperties';
 import * as fs from 'fs';
-import { AccessibilityStatus } from "./components/helpers";
 import { MSOfficeMetadata } from './components/MSOfficeMetadata';
 import { testPPTXAccessiblity } from './components/pptx';
+import { homedir } from 'os';
+
+let __homedir = homedir();
 
 let mainWindow: Electron.BrowserWindow = null;
 function createWindow() {
@@ -79,7 +81,8 @@ function createWindow() {
                   action: 'run-accessibility-test', 
                   path: arg.path, 
                   testStatus: "completed", 
-                  accStatus: result.toString() 
+                  accStatus: result.toString(),
+                  resultPath: pathModule.join(__homedir, 'Downloads', 'DAC') 
                 });
               } catch (error) {
                 // Handle the error here
@@ -497,7 +500,8 @@ ipcMain.on('start-folder-accessibility-test', async (event, data: {path: string,
       action: 'run-folder-accessibility-test',
       path: path,
       testStatus: "completed",
-      results: res.results
+      results: res.results,
+      resultPath: pathModule.join(__homedir, 'Downloads', 'DAC')
     });
   }
 });

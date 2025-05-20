@@ -305,7 +305,11 @@ function recieveTestResults(data: any) {
     return; 
   }
   let rightPanel = document.getElementById("right-panel");
-  let HTMLReport = `<h2>Accessibility test result for ${data.path.split('/').pop()}</h2>`;
+  let HTMLReport = `
+    <div class="alert alert-warning" role="alert">
+      [Note] PDF and Powerpoint test results are saved to ${data.resultPath}
+    </div>
+    <h2>Accessibility test result for ${data.path.split('/').pop()}</h2>`;
   if (data.testStatus == "error") {
     HTMLReport += `
         <p>Accessibility test incomplete. Tester gave the error: ${data.accStatus}</p>
@@ -336,7 +340,11 @@ function recieveFolderTestResults(data: any) {
     return; 
   }
   let rightPanel = document.getElementById("right-panel");
-  let HTMLReport = `<h2>Accessibility test result for ${data.path.split('/').pop()}</h2>`;
+  let HTMLReport = `
+  <div class="alert alert-warning" role="alert">
+  [Note] PDF and Powerpoint test results are saved to ${data.resultPath}
+  </div>
+  <h2>Accessibility test result for ${data.path.split('/').pop()}</h2>`;
   if (data.testStatus == "noDocuments") {
     HTMLReport += `<p>No documents were found in this folder or any sub-folders</p>`;
   }
