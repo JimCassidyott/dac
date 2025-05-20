@@ -1576,26 +1576,26 @@ export class PdfAccessibilityChecker {
 
           
           // Add pending tests
-          report.pendingTests = [
-              {
-                  criterion: "WCAG 2.4.5 Multiple Ways",
-                  reason: "We are planning to implement this test. This criterion requires that there is more than one way to locate a webpage within a set of webpages. For PDFs, this would involve checking for the presence of bookmarks, a table of contents, or other navigation aids.",
-                  status: "Planned - Requirements Analysis"
-              },
-              {
-                  criterion: "WCAG 1.3.2 Meaningful Sequence",
-                  reason: "We are planning to implement this test. This criterion ensures that when the sequence in which content is presented affects its meaning, a correct reading sequence can be programmatically determined. For PDFs, this involves checking the document's structure tree and reading order.",
-                  status: "Planned - Requirements Analysis"
-              },
-              {
-                  criterion: "WCAG 2.4.3 Focus Order",
-                  reason: "We are planning to implement this test. This criterion ensures that the order of focus when navigating through interactive elements in a PDF (like form fields and links) follows a sequence that preserves meaning and operability. This is essential for blind users who navigate documents using keyboard commands with screen readers.",
-                  status: "Planned - Requirements Analysis"
-              }
-          ];
+        //   report.pendingTests = [
+        //       {
+        //           criterion: "WCAG 2.4.5 Multiple Ways",
+        //           reason: "We are planning to implement this test. This criterion requires that there is more than one way to locate a webpage within a set of webpages. For PDFs, this would involve checking for the presence of bookmarks, a table of contents, or other navigation aids.",
+        //           status: "Planned - Requirements Analysis"
+        //       },
+        //       {
+        //           criterion: "WCAG 1.3.2 Meaningful Sequence",
+        //           reason: "We are planning to implement this test. This criterion ensures that when the sequence in which content is presented affects its meaning, a correct reading sequence can be programmatically determined. For PDFs, this involves checking the document's structure tree and reading order.",
+        //           status: "Planned - Requirements Analysis"
+        //       },
+        //       {
+        //           criterion: "WCAG 2.4.3 Focus Order",
+        //           reason: "We are planning to implement this test. This criterion ensures that the order of focus when navigating through interactive elements in a PDF (like form fields and links) follows a sequence that preserves meaning and operability. This is essential for blind users who navigate documents using keyboard commands with screen readers.",
+        //           status: "Planned - Requirements Analysis"
+        //       }
+        //   ];
           
           // Add additional notes
-          report.additionalNotes = "Note: We are actively working on implementing tests for WCAG 2.4.5 Multiple Ways, WCAG 1.3.2 Meaningful Sequence, and WCAG 2.4.3 Focus Order. For Multiple Ways, we need to gather requirements from sight-impaired users to determine acceptable navigation methods. For Meaningful Sequence, we're developing algorithms to verify that the reading order in PDF documents is logical. For Focus Order, we're analyzing how to test that interactive elements follow a sequence that preserves meaning and operability for screen reader users.";
+        //   report.additionalNotes = "Note: We are actively working on implementing tests for WCAG 2.4.5 Multiple Ways, WCAG 1.3.2 Meaningful Sequence, and WCAG 2.4.3 Focus Order. For Multiple Ways, we need to gather requirements from sight-impaired users to determine acceptable navigation methods. For Meaningful Sequence, we're developing algorithms to verify that the reading order in PDF documents is logical. For Focus Order, we're analyzing how to test that interactive elements follow a sequence that preserves meaning and operability for screen reader users.";
           
           // Save the report to a file
           // const reportPath = pdfPath.replace(/\.pdf$/i, '-accessibility-report.json');
@@ -1640,13 +1640,13 @@ export class AccessibilityReportGenerator {
       </div>
     `).join('');
   
-    const pendingHtml = report.pendingTests.map(test => `
-      <div class="pending">
-        <strong>Criterion:</strong> ${test.criterion}<br/>
-        <strong>Status:</strong> <span class="tag">${test.status}</span><br/>
-        <strong>Reason:</strong> ${test.reason}
-      </div>
-    `).join('');
+    // const pendingHtml = report.pendingTests.map(test => `
+    //   <div class="pending">
+    //     <strong>Criterion:</strong> ${test.criterion}<br/>
+    //     <strong>Status:</strong> <span class="tag">${test.status}</span><br/>
+    //     <strong>Reason:</strong> ${test.reason}
+    //   </div>
+    // `).join('');
   
     const docDetails = report.documentType.details.map(d => `<li>${d}</li>`).join('');
   
@@ -1671,7 +1671,6 @@ export class AccessibilityReportGenerator {
   
       <section><h2>Detected Issues</h2>${issueHtml}</section>
   
-      <section><h2>Pending Tests</h2>${pendingHtml}</section>
   
       <section><h2>Document Type</h2>
         <p><strong>Is Form:</strong> ${report.documentType.isForm}</p>
