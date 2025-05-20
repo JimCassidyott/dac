@@ -43,12 +43,3 @@ DAC currently supports accessibility testing for the following document types:
         - Right-click DAC.exe and select Create shortcut.
         - Move the shortcut to your desktop.
 
-- Next, Go to the latest release in this repository [Releases](https://github.com/JimCassidyott/dac/releases/)
-- Download the `DAC-(version).Setup.zip` file.
-- Unzip the `DAC-(version).Setup.zip` file. (Right click on .zip file and select Extract all)
-- Open the unzipped `DAC-(version).Setup` folder.
-- Run the (.exe) setup file to install the Document Accessibility Checker.
-- _If Microsoft Defender prevents the DAC installer from running, run the DAC installer using Command Prompt._
-- The DAC program will be installed at `C:\Users\<your_username>\AppData\Local\DAC`
-- To create a desktop shortcut right click on the DAC program file named DAC.exe and select `Create shortcut`. Then copy over the shortcut to your desktop. 
-
