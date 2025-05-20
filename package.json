@@ -10,17 +10,14 @@
     "lint": "eslint -c .eslintrc --ext .ts ./src",
     "start": "electron-forge start",
     "cserve": "python -m http.server 8000",
-    "package": "electron-forge package",
-    "make": "electron-forge make",
+    "package": "npm run build && electron-forge package",
+    "make": "npm run build && electron-forge make",
     "create-test-files": "npx ts-node tests/createTestFiles.ts"
   },
-  "repository": "https://github.com/electron/electron-quick-start-typescript",
+  "repository": "https://github.com/jimcassidyott/dac",
   "keywords": [
+    "Accessibility",
     "Electron",
-    "quick",
-    "start",
-    "tutorial",
-    "demo",
     "typescript"
   ],
   "author": "GitHub",

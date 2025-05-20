@@ -10,7 +10,7 @@ import { isWordDOC, isPDFDoc, isPPTXDoc, AccessibilityStatus, getHTMLReportPath 
 import * as PDFProperties from './components/PDFProperties';
 import * as fs from 'fs';
 import { MSOfficeMetadata } from './components/MSOfficeMetadata';
-import { testPPTXAccessiblity } from './components/pptx';
+import { testPPTXAccessiblity } from './components/pptxAccessibilityChecker';
 import { homedir } from 'os';
 
 let __homedir = homedir();

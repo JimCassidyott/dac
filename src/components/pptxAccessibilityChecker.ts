@@ -12,41 +12,30 @@ export interface Issue {
   issueText: string,
 };
 
-function extractPosition(item: any): { x: number, y: number } {
-  const xfrm = item["p:spPr"]?.[0]["a:xfrm"]?.[0]
-            || item["p:grpSpPr"]?.[0]["a:xfrm"]?.[0]
-            || item["p:graphicFramePr"]?.[0]["a:xfrm"]?.[0];
+async function checkAltText(filePath: string): Promise<Issue[]> {
+    const zip = await unzipper.Open.file(filePath);
+    const slideFiles = zip.files.filter(f => f.path.startsWith("ppt/slides/slide") && f.path.endsWith(".xml"));
+    let issues: Issue[] = [];
 
-  const x = parseInt(xfrm?.["a:off"]?.[0]?.["$"]?.x || "1000000"); // default x ~1 inch
-  const y = parseInt(xfrm?.["a:off"]?.[0]?.["$"]?.y || "1000000"); // default y ~1 inch
-
-  return { x, y };
+    for (const slideFile of slideFiles) {
+        const content = await slideFile.buffer();
+        const xml = await parseStringPromise(content.toString());
+        
+        const images = xml["p:sld"]["p:cSld"][0]["p:spTree"][0]["p:pic"] || [];
+        
+        images.forEach((image: any, index: number) => {
+            const altText = image["p:nvPicPr"]?.[0]["p:cNvPr"]?.[0]?.["$"]?.descr || "";
+            if (!altText.trim()) {
+                console.warn(`Slide ${slideFiles.indexOf(slideFile) + 1}, Image ${index + 1}: Missing alt text.`);
+                issues.push({
+                  slideNumber: slideFiles.indexOf(slideFile) + 1,
+                  issueText: `Slide ${slideFiles.indexOf(slideFile) + 1}, Image ${index + 1}: Missing alt text.`
+                });
+            }
+        });
+    }
+    return issues;
 }
-
-// async function checkAltText(filePath: string): Promise<Issue[]> {
-//     const zip = await unzipper.Open.file(filePath);
-//     const slideFiles = zip.files.filter(f => f.path.startsWith("ppt/slides/slide") && f.path.endsWith(".xml"));
-//     let issues: Issue[] = [];
-
-//     for (const slideFile of slideFiles) {
-//         const content = await slideFile.buffer();
-//         const xml = await parseStringPromise(content.toString());
-        
-//         const images = xml["p:sld"]["p:cSld"][0]["p:spTree"][0]["p:pic"] || [];
-        
-//         images.forEach((image: any, index: number) => {
-//             const altText = image["p:nvPicPr"]?.[0]["p:cNvPr"]?.[0]?.["$"]?.descr || "";
-//             if (!altText.trim()) {
-//                 console.warn(`Slide ${slideFiles.indexOf(slideFile) + 1}, Image ${index + 1}: Missing alt text.`);
-//                 issues.push({
-//                   slideNumber: slideFiles.indexOf(slideFile) + 1,
-//                   issueText: "jksahfkjah"
-//                 });
-//             }
-//         });
-//     }
-//     return issues;
-// }
 
 // check that each slide has a title.
 async function checkSlideTitle(filePath: string): Promise<Issue[]> {
@@ -108,50 +97,6 @@ async function checkContrast(filePath: string): Promise<Issue[]> {
     return issues;
 }
 
-// async function checkReadingOrder(filePath: string) {
-//   const zip = await unzipper.Open.file(filePath);
-//   const slideFiles = zip.files.filter(f => f.path.startsWith("ppt/slides/slide") && f.path.endsWith(".xml"));
-
-//   for (const slideFile of slideFiles) {
-//       const content = await slideFile.buffer();
-//       const xml = await parseStringPromise(content.toString());
-
-//       const elements = xml["p:sld"]["p:cSld"][0]["p:spTree"][0]["p:sp"] || [];
-//       const order = elements.map((el: any) => el["p:nvSpPr"]?.[0]["p:cNvPr"]?.[0]?.["$"].id);
-
-//       console.log(`Slide ${slideFiles.indexOf(slideFile) + 1} reading order:`, order);
-//   }
-// }
-
-/**
- * 
- * @param filePath 
-  async function checkReadingOrder(filePath: string) {
-    const zip = await unzipper.Open.file(filePath);
-    const slideFiles = zip.files.filter(f => f.path.startsWith("ppt/slides/slide") && f.path.endsWith(".xml"));
-
-    for (const slideFile of slideFiles) {
-      const content = await slideFile.buffer();
-      const xml = await parseStringPromise(content.toString());
-
-      const slideIndex = slideFiles.indexOf(slideFile) + 1;
-      const tree = xml["p:sld"]["p:cSld"][0]["p:spTree"][0];
-
-      const spElements = tree["p:sp"] || [];
-      const picElements = tree["p:pic"] || [];
-      const tableElements = tree["p:graphicFrame"] || [];
-      const groupElements = tree["p:grpSp"] || [];
-
-      const allElements = [...spElements, ...picElements, ...tableElements, ...groupElements];
-
-      const order = allElements.map((el: any) => el["p:nvSpPr"]?.[0]["p:cNvPr"]?.[0]?.["$"].id || "unknown");
-
-      console.log(`Slide ${slideIndex} reading order:`, order);
-    }
-}
-
- */
-
 async function checkEmptySlides(filePath: string): Promise<Issue[]> {
   const zip = await unzipper.Open.file(filePath);
   const slideFiles = zip.files.filter(f => f.path.startsWith("ppt/slides/slide") && f.path.endsWith(".xml"));
@@ -206,67 +151,6 @@ async function checkPowerPointTableHeaders(filePath: string): Promise<Issue[]> {
         console.log(`Slide ${slideIndex}: Table has header row enabled.`);
       }
     }
-  }
-  return issues;
-}
-
-async function checkAltTextAllVisuals(filePath: string): Promise<Issue[]> {
-  const zip = await unzipper.Open.file(filePath);
-  const slideFiles = zip.files.filter(f => f.path.startsWith("ppt/slides/slide") && f.path.endsWith(".xml"));
-  let issues: Issue[] = [];
-
-  for (const slideFile of slideFiles) {
-      const content = await slideFile.buffer();
-      const xml = await parseStringPromise(content.toString());
-      const slideIndex = slideFiles.indexOf(slideFile) + 1;
-
-      const tree = xml["p:sld"]["p:cSld"][0]["p:spTree"][0];
-
-      // Check <p:pic> (Images)
-      const pics = tree["p:pic"] || [];
-      pics.forEach((item: any, index: number) => {
-          const alt = item["p:nvPicPr"]?.[0]["p:cNvPr"]?.[0]?.["$"]?.descr || "";
-          if (!alt.trim()) {
-              console.warn(`Slide ${slideIndex}, Image ${index + 1}: Missing alt text.`);
-              issues.push({
-                slideNumber: slideIndex,
-                issueText: `Slide ${slideIndex}, Image ${index + 1}: Missing alt text.`,
-              });
-          }
-      });
-
-      // Check <p:sp> (Shapes)
-      const shapes = tree["p:sp"] || [];
-      shapes.forEach((item: any, index: number) => {
-          const alt = item["p:nvSpPr"]?.[0]["p:cNvPr"]?.[0]?.["$"]?.descr || "";
-          if (!alt.trim()) {
-              console.warn(`Slide ${slideIndex}, Shape ${index + 1}: Missing alt text.`);
-              issues.push({
-                slideNumber: slideIndex,
-                issueText: `Slide ${slideIndex}, Shape ${index + 1}: Missing alt text.`,
-              });
-          }
-      });
-
-      // Check <p:graphicFrame> (SmartArt, Tables, Charts)
-      const frames = tree["p:graphicFrame"] || [];
-      frames.forEach((item: any, index: number) => {
-          const alt = item["p:nvGraphicFramePr"]?.[0]["p:cNvPr"]?.[0]?.["$"]?.descr || "";
-          const graphicDataUri = item["a:graphic"]?.[0]["a:graphicData"]?.[0]["$"]?.uri || "";
-
-          let type = "Graphic";
-          if (graphicDataUri.includes("chart")) type = "Chart";
-          else if (graphicDataUri.includes("table")) type = "Table";
-          else if (graphicDataUri.includes("diagram")) type = "SmartArt";
-
-          if (!alt.trim()) {
-              console.warn(`Slide ${slideIndex}, ${type} ${index + 1}: Missing alt text.`);
-              issues.push({
-                slideNumber: slideIndex,
-                issueText: `Slide ${slideIndex}, ${type} ${index + 1}: Missing alt text.`,
-              });
-          }
-      });
   }
   return issues;
 }
@@ -327,11 +211,12 @@ async function checkRawURLLinks(filePath: string): Promise<Issue[]> {
 }
 
 export async function runPPTXTests(filePath: string): Promise<Issue[]>{
-  let issues: Issue[] = await checkAltTextAllVisuals(filePath);
+  let issues: Issue[] = await checkAltText(filePath);
   issues.push(...await checkSlideTitle(filePath));
   issues.push(...await checkContrast(filePath));
   issues.push(...await checkPowerPointTableHeaders(filePath));
   issues.push(...await checkRawURLLinks(filePath));
+  issues.push(...await checkEmptySlides(filePath));
   return issues;
 }
 
@@ -398,14 +283,4 @@ export async function testPPTXAccessiblity(filePath: string, fileSource: string)
   await MSOfficeMetadata.changeIsAccessibleProperty(filePath, issues.length === 0);
 
   return {filePath, accessibilityStatus};
-} 
-
-async function main() {
-  console.log(`before: ${await MSOfficeMetadata.isAccessible("C:\\Users\\hatharasinghageth\\Documents\\Test\\dac\\demo_files\\untested\\Versioning.pptx", "SYSTEM")}`);
-  console.log(await testPPTXAccessiblity("C:\\Users\\hatharasinghageth\\Documents\\Test\\dac\\demo_files\\untested\\Versioning.pptx", "SYSTEM"));
-  console.log(`after: ${await MSOfficeMetadata.isAccessible("C:\\Users\\hatharasinghageth\\Documents\\Test\\dac\\demo_files\\untested\\Versioning.pptx", "SYSTEM")}`);
-}
-
-if (require.main === module) {
-  main();
 }
