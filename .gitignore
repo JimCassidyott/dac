@@ -110,3 +110,4 @@ tmp/
 /temp/PDFTestResults/*
 !/temp/PDFTestResults/
 !/temp/PDFTestResults/.gitignore
+/chrome-win64

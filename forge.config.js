@@ -6,7 +6,7 @@ module.exports = {
   packagerConfig: {
     asar: true,
     extraResource: [
-      path.resolve(__dirname, 'chromium'),
+      path.resolve(__dirname, 'chrome-win64'),
     ],
   },
   rebuildConfig: {},

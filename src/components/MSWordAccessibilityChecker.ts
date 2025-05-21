@@ -60,8 +60,7 @@ export async function testAccessiblity(filePath: string, fileSource: string): Pr
         const outputFilePath = filePath + '.html';
         // Run the Pandoc command synchronously
         convertDocxToHtml(filePath, outputFilePath);
-        // console.log(`getChromiumPath: ${getChromiumPath()}`)
-        const chromiumPath = join(app.getAppPath(), '..', 'resources', 'chromium', 'chrome.exe');
+        const chromiumPath = getChromiumPath();
         const browser = await puppeteer.launch({
             executablePath: chromiumPath,
             headless: true,
@@ -114,12 +113,11 @@ function getChromiumPath(): string {
     // Dev environment — use Puppeteer's built-in executable path
     return puppeteer.executablePath();
   } else {
-    // Production (packaged) — use the bundled path in extraResource
-    const base = join(app.getAppPath(), '..', 'resources', '.local-chromium');
+    const base = join(app.getAppPath(), '..');
     const platforms = fs.readdirSync(base);
-    const win64Folder = platforms.find(p => p.startsWith('win64'));
+    const win64Folder = platforms.find(p => p.includes('win64'));
     if (!win64Folder) throw new Error('No Chromium folder found in resources');
-    return join(base, win64Folder, 'chrome-win', 'chrome.exe'); // adjust for your OS
+    return join(base, win64Folder, 'chrome.exe'); 
   }
 }
 
