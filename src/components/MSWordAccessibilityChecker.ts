@@ -7,6 +7,11 @@ import { MSWordComments } from './MSWordComments';
 import { HeadingError } from './Headings';
 import { testHeadings } from './MSWordHeaders';
 import { AccessibilityStatus } from './helpers';
+import { app } from 'electron';
+import { join } from 'path';
+import puppeteer = require('puppeteer');
+
+
 
 const errorCodesToIgnore = [
     'WCAG2AAA.Principle3.Guideline3_1.3_1_1.H57.3.Lang',
@@ -55,9 +60,14 @@ export async function testAccessiblity(filePath: string, fileSource: string): Pr
         const outputFilePath = filePath + '.html';
         // Run the Pandoc command synchronously
         convertDocxToHtml(filePath, outputFilePath);
-
+        const chromiumPath = getChromiumPath();
+        const browser = await puppeteer.launch({
+            executablePath: chromiumPath,
+            headless: true,
+        });
         // Use pa11y to check the HTML file for accessibility issues
-        const results = await pa11y(outputFilePath, pa11yOptions as any)
+        const results = await pa11y(outputFilePath, {...pa11yOptions, browser,} as any);
+        await browser.close();
         const filteredResults = results.issues.filter(issue => !errorCodesToIgnore.includes(issue.code));
         for (let i = 0; i < filteredResults.length; i++) {
             const issue = filteredResults[i];
@@ -97,9 +107,25 @@ export async function testAccessiblity(filePath: string, fileSource: string): Pr
     }
 }
 
+function getChromiumPath(): string {
+    console.log(`isDevMode: ${isDevMode()}`)
+  if (isDevMode()) {
+    // Dev environment — use Puppeteer's built-in executable path
+    return puppeteer.executablePath();
+  } else {
+    const base = join(app.getAppPath(), '..');
+    const platforms = fs.readdirSync(base);
+    const win64Folder = platforms.find(p => p.includes('win64'));
+    if (!win64Folder) throw new Error('No Chromium folder found in resources');
+    return join(base, win64Folder, 'chrome.exe'); 
+  }
+}
 
-
-
+function isDevMode(): boolean {
+  return process.env.ELECTRON_IS_DEV === '1'
+    || process.defaultApp === true
+    || /[\\/]electron[\\/]/.test(process.execPath);
+}
 
 // async function exampleUsage() {
 //     const filePath = 'C:\\Users\\jimca\\Documents\\x\\jim.docx';
