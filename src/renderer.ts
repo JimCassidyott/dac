@@ -307,7 +307,7 @@ function recieveTestResults(data: any) {
   let rightPanel = document.getElementById("right-panel");
   let HTMLReport = `
     <div class="alert alert-warning" role="alert">
-      [Note] PDF and Powerpoint test results are saved to ${data.resultPath}
+      [Note] Test results are saved to ${data.resultPath}
     </div>
     <h2>Accessibility test result for ${data.path.split('/').pop()}</h2>`;
   if (data.testStatus == "error") {
@@ -342,7 +342,7 @@ function recieveFolderTestResults(data: any) {
   let rightPanel = document.getElementById("right-panel");
   let HTMLReport = `
   <div class="alert alert-warning" role="alert">
-  [Note] PDF and Powerpoint test results are saved to ${data.resultPath}
+  [Note] Test results are saved to ${data.resultPath}
   </div>
   <h2>Accessibility test result for ${data.path.split('/').pop()}</h2>`;
   if (data.testStatus == "noDocuments") {

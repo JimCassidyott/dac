@@ -60,6 +60,7 @@ export function getHTMLReportPath(fileName: string): string {
     const basePath = path.join(__homedir, 'Downloads', 'DAC');
     if (path.extname(fileName) === '.pdf') { return path.join(createFolderIfNotxist(path.join(basePath, 'PDFTestResults')), fileName); }
     if (path.extname(fileName) === '.pptx') { return path.join(createFolderIfNotxist(path.join(basePath, 'PPTXTestResults')), fileName); }
+    if (path.extname(fileName) === '.docx') { return path.join(createFolderIfNotxist(path.join(basePath, 'WordTestResults')), fileName); }
   }
   catch (error) { throw error; }
 }

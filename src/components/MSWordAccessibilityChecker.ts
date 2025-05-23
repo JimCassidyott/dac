@@ -4,14 +4,26 @@ import * as pa11y from 'pa11y';
 import { GCDocsAdapter } from './GCDocsAdaptor';
 const cheerio = require('cheerio');
 import { MSWordComments } from './MSWordComments';
-import { HeadingError } from './Headings';
+import { HeadingError, HeadingErrorCode } from './Headings';
 import { testHeadings } from './MSWordHeaders';
-import { AccessibilityStatus } from './helpers';
+import { AccessibilityStatus, getHTMLReportPath } from './helpers';
 import { app } from 'electron';
-import { join } from 'path';
+import { join, basename } from 'path';
 import puppeteer = require('puppeteer');
 
+interface HeadingErrorData {
+  errorCode: HeadingErrorCode;
+  message: string;
+}
 
+interface ResultIssue {
+  code: string;
+  context: string;
+  message: string;
+  selector: string;
+  type: string;
+  typeCode: number;
+}
 
 const errorCodesToIgnore = [
     'WCAG2AAA.Principle3.Guideline3_1.3_1_1.H57.3.Lang',
@@ -68,24 +80,49 @@ export async function testAccessiblity(filePath: string, fileSource: string): Pr
         // Use pa11y to check the HTML file for accessibility issues
         const results = await pa11y(outputFilePath, {...pa11yOptions, browser,} as any);
         await browser.close();
-        const filteredResults = results.issues.filter(issue => !errorCodesToIgnore.includes(issue.code));
+        const filteredResults: ResultIssue[] = results.issues.filter(issue => !errorCodesToIgnore.includes(issue.code));
+        let headingErrors: HeadingError[] = [];
         for (let i = 0; i < filteredResults.length; i++) {
             const issue = filteredResults[i];
+            console.log(issue);
             const htmlContext = issue.context;
 
             // Parse the context using cheerio to extract text content
             const $ = cheerio.load(htmlContext);
-            const targetText = $(htmlContext).text();
-            const msWordComments = new MSWordComments();
-            await msWordComments.addComment(filePath, targetText, `${issue.code} \n${issue.message}`);
+            let targetText = $(htmlContext).text();
+            if (targetText.endsWith('...')) {
+                targetText = targetText.slice(0, -3);
+            }
+            try {
+                const msWordComments = new MSWordComments();
+                console.log(targetText)
+                await msWordComments.addComment(filePath, targetText, `${issue.code} \n${issue.message}`);
+            }
+            catch (error) {
+                console.error(error);
+            }
         }
 
         let fileIsAccessible = filteredResults.length === 0 ? AccessibilityStatus.Accessible : AccessibilityStatus.NotAccessible;
-        let headingErrors = await testHeadings(filePath);
         fs.unlink(outputFilePath, (err) => {
-          if (err) throw (err);
-          console.log(`Successfully deleted file: ${outputFilePath}`);
+            if (err) throw (err);
+            console.log(`Successfully deleted file: ${outputFilePath}`);
         });
+        try {
+            await testHeadings(filePath);
+        }
+        catch (error) {
+            if (error instanceof HeadingError) {
+                headingErrors.push(error);
+            }
+        }
+        generateWordAccessibilityHtmlReport(filePath,
+            filteredResults,
+            headingErrors.map(e => ({
+                errorCode: e.errorCode,
+                message: e.message
+            }))
+        );
         return { filePath, fileIsAccessible };
     } catch (error) {
         // Check if error is related to headers and add a comment
@@ -125,6 +162,74 @@ function isDevMode(): boolean {
   return process.env.ELECTRON_IS_DEV === '1'
     || process.defaultApp === true
     || /[\\/]electron[\\/]/.test(process.execPath);
+}
+
+function generateWordAccessibilityHtmlReport(
+  filePath: string,
+  issues: ResultIssue[],
+  headingErrors: HeadingErrorData[]
+): void {
+  const fileName = basename(filePath);
+  const passed = issues.length === 0 && headingErrors.length === 0;
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <title>Accessibility Report for ${fileName}</title>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 2em; line-height: 1.6; }
+        h1 { border-bottom: 2px solid #333; }
+        .status { font-size: 1.2em; font-weight: bold; margin: 1em 0; }
+        .pass { color: green; }
+        .fail { color: red; }
+        .issue, .heading-issue {
+          border: 1px solid #ccc;
+          border-left: 4px solid #e74c3c;
+          padding: 1em;
+          margin: 1em 0;
+        }
+        .code { font-family: monospace; background: #f5f5f5; padding: 0.2em 0.4em; }
+        .context { background: #f9f9f9; padding: 0.5em; margin-top: 0.5em; border: 1px dashed #ccc; white-space: pre-wrap; }
+        footer { margin-top: 3em; font-style: italic; }
+      </style>
+    </head>
+    <body>
+      <h1>Accessibility Compliance Report for ${fileName}</h1>
+      <div class="filepath"><strong>File path:</strong> ${filePath}</div>
+      <div class="status ${passed ? 'pass' : 'fail'}">
+        ${passed ? '✅ Passed: No accessibility issues found.' : '❌ Failed: Accessibility issues detected.'}
+      </div>
+
+      ${issues.length > 0 ? `<h2>Detected Issues (from pa11y)</h2>` : ''}
+      ${issues.map(issue => `
+        <div class="issue">
+          <div><strong>Code:</strong> <span class="code">${issue.code}</span></div>
+          <div><strong>Message:</strong> ${issue.message}</div>
+          <div><strong>Selector:</strong> ${issue.selector}</div>
+          <div><strong>Type:</strong> ${issue.type}</div>
+          <div class="context"><strong>Context:</strong><br/>${issue.context}</div>
+        </div>
+      `).join('')}
+
+      ${headingErrors.length > 0 ? `<h2>Heading Structure Issues</h2>` : ''}
+      ${headingErrors.map(err => `
+        <div class="heading-issue">
+          <div><strong>Error Code:</strong> <span class="code">${err.errorCode}</span></div>
+          <div><strong>Message:</strong> ${err.message}</div>
+        </div>
+      `).join('')}
+
+      <footer>Report generated at ${new Date().toLocaleString()}</footer>
+    </body>
+    </html>
+  `;
+
+  const outputPath = getHTMLReportPath(fileName).replace(/\.docx$/i, '-accessibility-report.html');
+  
+  fs.writeFileSync(outputPath, html, 'utf-8');
+  console.log(`✅ Word accessibility report saved to: ${outputPath}`);
 }
 
 // async function exampleUsage() {
