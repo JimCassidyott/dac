@@ -243,6 +243,7 @@ export function generatePPTXAccessibilityReport(filePath: string, issues: Issue[
     </head>
     <body>
       <h1>Accessibility Compliance Report for ${fileName}</h1>
+      <div class="filepath"><strong>File path:</strong> ${filePath}</div>
 
       <div class="status ${passed ? 'pass' : 'fail'}">
         ${passed ? '✅ Passed: No accessibility issues found.' : '❌ Failed: Accessibility issues detected.'}
