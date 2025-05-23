@@ -133,6 +133,9 @@ export interface AccessibilityReport {
     /** Name of the PDF file that was analyzed */
     filename: string;
 
+    /** Path to the PDF file */ 
+    filePath: string;
+
     /** Whether the document passed all accessibility checks */
     passed: boolean;
 
@@ -778,34 +781,6 @@ export class ImageExtractor {
 }
 
 
-
-/**
- * Represents a complete accessibility report for multiple PDF documents
- */
-export interface BatchAccessibilityReport {
-    /** Timestamp when the batch report was generated */
-    timestamp: string;
-
-    /** Total number of files processed */
-    totalFiles: number;
-
-    /** Number of files that passed all tests */
-    passedFiles: number;
-
-    /** Number of files that failed at least one test */
-    failedFiles: number;
-
-    /** Detailed reports for each file */
-    fileReports: AccessibilityReport[];
-
-    /** Summary of most common issues across all files */
-    commonIssues: {
-        criterion: string;
-        count: number;
-        description: string;
-    }[];
-}
-
 /**
  * Represents detailed remediation steps for a specific issue
  */
@@ -820,24 +795,6 @@ interface RemediationStep {
     priority: string;
 }
 
-/**
- * Represents a detailed remediation plan for a single file
- */
-interface FileRemediationPlan {
-    /** Name of the PDF file */
-    filename: string;
-    /** Type of document (form/regular) and confidence */
-    documentType: DocumentTypeResult;
-    /** List of issues that need remediation */
-    issues: Array<{
-        criterion: string;
-        description: string;
-        impact: string;
-        remediation: RemediationStep[];
-    }>;
-    /** Estimated time to fix all issues (in minutes) */
-    estimatedFixTime: number;
-}
 
 /**
  * Represents the accessibility status of a document
@@ -848,45 +805,6 @@ export enum AccessibilityStatus {
     NeedsManualTesting = "Needs Manual Testing"
 }
 
-/**
- * Represents a JSON-serializable remediation report
- */
-interface JsonRemediationReport {
-    metadata: {
-        generated: string;
-        version: string;
-    };
-    summary: {
-        totalFiles: number;
-        needsRemediation: number;
-        needsManualTesting: number;
-    };
-    commonIssues: Array<{
-        criterion: string;
-        frequency: number;
-        description: string;
-    }>;
-    files: Array<{
-        filename: string;
-        type: 'Form' | 'Document';
-        status: AccessibilityStatus;
-        issues?: Array<{
-            criterion: string;
-            impact: string;
-            description: string;
-            remediation: Array<{
-                location: string;
-                priority: string;
-                steps: string[];
-                tools?: string[];
-                estimatedMinutes: number;
-            }>;
-        }>;
-        manualTestingSteps?: string[];
-        estimatedFixTime?: number;
-    }>;
-    additionalNotes: string[];
-}
 
 /**
  * Class containing implementations of WCAG tests for PDF documents
@@ -1511,6 +1429,7 @@ export class PdfAccessibilityChecker {
           // Initialize the report
           const report: AccessibilityReport = {
               filename,
+              filePath: pdfPath,
               passed: true,
               issues: [],
               pendingTests: [],
@@ -1666,6 +1585,7 @@ export class AccessibilityReportGenerator {
     </head>
     <body>
       <h1>Accessibility Compliance Report for ${report.filename}</h1>
+      <div class="filepath"><strong>File path:</strong> ${report.filePath}</div>
   
       <section><strong>Passed:</strong> ${report.passed ? '✅ Yes' : '❌ No'}</section>
   
@@ -1679,7 +1599,7 @@ export class AccessibilityReportGenerator {
         <ul>${docDetails}</ul>
       </section>
   
-      <section><h2>Additional Notes</h2><p>${report.additionalNotes}</p></section>
+      <section><h2>Additional Notes</h2><p>${report.additionalNotes ? report.additionalNotes : "None"}</p></section>
   
       <footer><em>Report generated at: ${new Date(report.timestamp).toLocaleString()}</em></footer>
     </body>
@@ -1696,108 +1616,7 @@ export class AccessibilityReportGenerator {
     fs.writeFileSync(outputPath, htmlReport, 'utf-8');
     console.log(`HTML Accessibility report saved to: ${outputPath}`);
   }
-  
-  /**
-   * Generates an accessibility report for a PDF document
-   * @param pdfPath Path to the PDF file
-   * @param outputPath Path to save the report
-   */
-  static async generateReport(pdfPath: string, outputPath: string): Promise<AccessibilityReport> {
-      try {
-          console.log(`Generating accessibility report for: ${pdfPath}`);
-          
-          // Extract filename from path
-          const filename = pdfPath.split(/[\\/]/).pop() || '';
-          
-          // Detect document type (form or regular document)
-          const documentType = await WcagTests.detectDocumentType(pdfPath);
-          console.log(`Document type: ${documentType.isForm ? 'Form' : 'Document'} (${documentType.confidence}% confidence)`);
-          console.log('Detection details:');
-          documentType.details.forEach(detail => console.log(`- ${detail}`));
-          
-          // Load the PDF document for testing
-          const pdfDoc = await PdfLoader.loadWithPdfJs(pdfPath);
-          
-          // Run the tests
-          const titleResult = await WcagTests.testDocumentTitle(pdfDoc);
-          const languageResult = await WcagTests.testDocumentLanguage(pdfDoc);
-          const languageOfPartsResult = await WcagTests.testLanguageOfParts(pdfPath);
-          const linkPurposeResult = await WcagTests.testLinkPurpose(pdfDoc);
-          const imageAltTextResult = await WcagTests.testImageAltText(pdfDoc);
-          
-          // Check if all tests passed
-          const passed = [
-              titleResult, languageResult, languageOfPartsResult, 
-              linkPurposeResult, imageAltTextResult
-          ].every(result => result.passed);
-          
-          // Collect all issues
-          const issues: AccessibilityIssue[] = [];
-          [titleResult, languageResult, languageOfPartsResult, linkPurposeResult, imageAltTextResult].forEach(result => {
-              if (result && !result.passed && result.issue) issues.push(result.issue);
-          });
-          
-          // Create the report
-          const report: AccessibilityReport = {
-              filename,
-              passed,
-              issues,
-              documentType: {
-                  isForm: documentType.isForm,
-                  isDocument: documentType.isDocument,
-                  confidence: documentType.confidence,
-                  details: documentType.details
-              },
-              pendingTests: [],
-              timestamp: new Date().toISOString()
-          };
-          
-          // Write the report to file
-          this.saveReport(report, outputPath);
-          
-          // Print summary to console
-          this.printReportSummary(report);
-          return report;
-          
-      } catch (error) {
-          console.error("Error generating accessibility report:", error);
-          throw error;
-      }
-  }
-  
-  /**
-   * Saves a report to a file
-   * @param report Accessibility report
-   * @param outputPath Path to save the report
-   */
-  static saveReport(report: AccessibilityReport, outputPath: string): void {
-      fs.writeFileSync(outputPath, JSON.stringify(report, null, 2));
-      console.log(`Accessibility report saved to: ${outputPath}`);
-  }
-  
-  /**
-   * Prints a summary of the report to the console
-   * @param report Accessibility report
-   */
-  static printReportSummary(report: AccessibilityReport): void {
-      console.log(`\nAccessibility Test Summary for ${report.filename}:`);
-      console.log(`Status: ${report.passed ? 'PASSED' : 'FAILED'}`);
-      
-      if (report.issues.length > 0) {
-          console.log(`\nIssues found (${report.issues.length}):`);
-          report.issues.forEach((issue, index) => {
-              console.log(`${index + 1}. ${issue.criterion}: ${issue.description}`);
-          });
-      } else {
-          console.log('\nNo accessibility issues found!');
-      }
-      
-      if (report.documentType) {
-          console.log(`\nDocument Type: ${report.documentType.isForm ? 'Form' : 'Document'} (${report.documentType.confidence}% confidence)`);
-      }
-      
-      console.log(`\nReport generated at: ${report.timestamp}`);
-  }
+
 
   /**
    * Generates detailed remediation steps for a specific issue
@@ -1902,45 +1721,6 @@ export class AccessibilityReportGenerator {
     
     return null;
   }
-}
-
-/**
- * Generates detailed remediation steps for a specific issue
- */
-function generateRemediationSteps(issue: AccessibilityIssue, documentType: DocumentTypeResult): RemediationStep[] {
-    const steps: RemediationStep[] = [];
-    
-    if (issue.criterion.includes('3.3.2')) { // Form Field Labels
-        steps.push({
-            location: 'Form Fields without Labels',
-            steps: [
-                'Open the PDF in Adobe Acrobat Pro DC',
-                'Go to Tools > Accessibility > Reading Order',
-                'Identify unlabeled form fields',
-                'Right-click each field and select "Properties"',
-                'Add appropriate label text in the "Tooltip" field'
-            ],
-            tools: ['Adobe Acrobat Pro DC', 'Form Field Properties Editor'],
-            priority: 'Critical'
-        });
-    }
-    else if (issue.criterion.includes('2.4.7')) { // Focus Visibility
-        steps.push({
-            location: 'Form Fields without Focus Indicators',
-            steps: [
-                'Open the PDF in Adobe Acrobat Pro DC',
-                'Go to Tools > Prepare Form',
-                'Select all form fields without focus indicators',
-                'Right-click and select "Properties"',
-                'In the Appearance tab, set border color and thickness',
-                'Enable "Show border hover color for fields"'
-            ],
-            tools: ['Adobe Acrobat Pro DC', 'Form Field Properties Editor'],
-            priority: 'High'
-        });
-    }
-    
-    return steps;
 }
 
 
