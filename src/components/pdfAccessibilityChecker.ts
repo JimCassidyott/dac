@@ -1458,11 +1458,11 @@ export class PdfAccessibilityChecker {
               report.issues.push(languageResult.issue);
               report.passed = false;
           }
-          const languageOfPartsResult = await WcagTests.testLanguageOfParts(pdfPath);
-          if (!languageOfPartsResult.passed && languageOfPartsResult.issue) {
-              report.issues.push(languageOfPartsResult.issue);
-              report.passed = false;
-          }
+        //   const languageOfPartsResult = await WcagTests.testLanguageOfParts(pdfPath);
+        //   if (!languageOfPartsResult.passed && languageOfPartsResult.issue) {
+        //       report.issues.push(languageOfPartsResult.issue);
+        //       report.passed = false;
+        //   }
 
           // Test for link purpose (WCAG 2.4.4)
           const linkPurposeResult = await WcagTests.testLinkPurpose(pdfDoc);
