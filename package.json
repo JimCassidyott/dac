@@ -1,6 +1,6 @@
 {
   "name": "DAC",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Document Accessibility Checker - An Application for testing Documents for Accessibility Compliance",
   "main": "dist/main.js",
   "scripts": {
